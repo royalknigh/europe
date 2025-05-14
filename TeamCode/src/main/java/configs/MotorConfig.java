@@ -15,6 +15,8 @@ public class MotorConfig {
     public static DcMotorEx frontSlideMotor;
     public static DcMotorEx backSlideMotor;
 
+    public static DcMotorEx intakeMotor;
+
 
 
     public MotorConfig(HardwareMap hardwareMap) {
@@ -26,6 +28,9 @@ public class MotorConfig {
         frontSlideMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "frontSlideMotor");
         backSlideMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "backSlideMotor");
 
+        intakeMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "intakeMotor");
+
+        //drivetrain
         frontLeftMotor.setDirection(DcMotorEx.Direction.REVERSE);
         backLeftMotor.setDirection(DcMotorEx.Direction.REVERSE);
         frontRightMotor.setDirection(DcMotorEx.Direction.FORWARD);
@@ -36,6 +41,7 @@ public class MotorConfig {
         frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
+        //slides
         frontSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         backSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
@@ -47,6 +53,12 @@ public class MotorConfig {
 
         frontSlideMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
         backSlideMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
+        //intake
+        intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        intakeMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        intakeMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+
 
         MotorConfigurationType configFrontSlideMotor = frontSlideMotor.getMotorType().clone();
         configFrontSlideMotor.setAchieveableMaxRPMFraction(1.0);
@@ -71,6 +83,10 @@ public class MotorConfig {
         MotorConfigurationType configBackRightMotor = backRightMotor.getMotorType().clone();
         configBackRightMotor.setAchieveableMaxRPMFraction(1.0);
         backRightMotor.setMotorType(configBackRightMotor);
+
+        MotorConfigurationType configIntakeMotor = intakeMotor.getMotorType().clone();
+        configIntakeMotor.setAchieveableMaxRPMFraction(1.0);
+        intakeMotor.setMotorType(configIntakeMotor);
     }
 
     public void setMotorPowers(double frontLeftPower, double backLeftPower, double frontRightPower, double backRightPower) {
