@@ -48,4 +48,5 @@ public class IntakeServos extends LinearOpMode {
             servoConfig.setIntakePos(intakeRot, intakeY, clawRot, intakeClaw);
         }
     }
+
 }
