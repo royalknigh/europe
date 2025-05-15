@@ -23,8 +23,8 @@ public class ServoConfig {
     public Servo intClawRot;
     public Servo intClaw;
 
-    public ServoConfig(HardwareMap hardwareMap){
-        //pto
+    public ServoConfig(HardwareMap hardwareMap) {
+//        //pto
 //        ptoLeft = hardwareMap.get(Servo.class, "ptoLeft");
 //        ptoRight = hardwareMap.get(Servo.class, "ptoRight");
 //        ptoRot = hardwareMap.get(Servo.class, "ptoRot");
@@ -43,14 +43,15 @@ public class ServoConfig {
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
     }
-    public void setIntakePos(double rot, double y, double clawRot, double claw){
+
+    public void setIntakePos(double rot, double y, double clawRot, double claw) {
         intRot.setPosition(rot);
         intY.setPosition(y);
         intClawRot.setPosition(clawRot);
         intClaw.setPosition(claw);
     }
 
-    public void setOuttakePos(double lr, double y, double link, double claw){
+    public void setOuttakePos(double lr, double y, double link, double claw) {
         outRight.setPosition(lr);
         outLeft.setPosition(lr);
         outY.setPosition(y);
@@ -58,31 +59,34 @@ public class ServoConfig {
         outClaw.setPosition(claw);
     }
 
-    public void setInitPos(){
-        intRot.setPosition(IntConst.intRot_INIT);
-        intY.setPosition(IntConst.intY_INIT);
-        intClawRot.setPosition(IntConst.intClawRot_INIT);
-        intClaw.setPosition(IntConst.intClaw_INIT);
+    public void setInitPos() {
+        intRot.setPosition(IntConst.Rot_INIT);
+        intY.setPosition(IntConst.Y_INIT);
+        intClawRot.setPosition(IntConst.ClawRot_INIT);
+        intClaw.setPosition(IntConst.Claw_CLOSED);
 
-        outRight.setPosition(OutConst.outLeftRight_INIT);
-        outLeft.setPosition(OutConst.outLeftRight_INIT);
-        outY.setPosition(OutConst.outY_INIT);
-        outLink.setPosition(OutConst.outLink_INIT);
-        outClaw.setPosition(OutConst.outClaw_INIT);
+        outRight.setPosition(OutConst.Lr_INIT);
+        outLeft.setPosition(OutConst.Lr_INIT);
+        outY.setPosition(OutConst.Y_INIT);
+        outLink.setPosition(OutConst.Link_INIT);
+        outClaw.setPosition(OutConst.Claw_INIT);
 
         ptoRot.setPosition(IntConst.ptoUnlock);
-    }
 
-    public void lowerLegs(){
-        ptoLeft.setPosition(IntConst.ptoLegsDown);
-        ptoRight.setPosition(IntConst.ptoLegsDown);
-        ptoRot.setPosition(IntConst.ptoLock);
-    }
-    public void raiseLegs(){
         ptoLeft.setPosition(IntConst.ptoLegsUp);
         ptoRight.setPosition(IntConst.ptoLegsUp);
     }
 
+    public void lowerLegs() {
+        ptoLeft.setPosition(IntConst.ptoLegsDown);
+        ptoRight.setPosition(IntConst.ptoLegsDown);
+        ptoRot.setPosition(IntConst.ptoLock);
+    }
+
+    public void raiseLegs() {
+        ptoLeft.setPosition(IntConst.ptoLegsUp);
+        ptoRight.setPosition(IntConst.ptoLegsUp);
+    }
 
 
 }

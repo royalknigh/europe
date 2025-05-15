@@ -5,7 +5,6 @@ import com.pedropathing.util.PIDFController;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -14,7 +13,7 @@ import configs.ServoConfig;
 import consts.IntConst;
 import consts.OutConst;
 
-@TeleOp(name = "Basic: Omni Linear OpMode", group = "Linear OpMode")
+@TeleOp(name = "\uD83E\uDDDC Merman", group = "TeleOp")
 @Disabled
 public class Merman extends LinearOpMode {
 
@@ -24,8 +23,8 @@ public class Merman extends LinearOpMode {
     public static double oP = 0, oI = 0, oD = 0, oF = 0;
     public static double iP = 0, iI = 0, iD = 0, iF = 0;
 
-    private MotorConfig motorConfig;
-    private ServoConfig servoConfig;
+    public static int outTargetPosition = OutConst.slidesDown;
+    public static int intTargetPosition = OutConst.slidesDown;
 
     private PIDFController outPID;
     private PIDFController intPID;
@@ -34,8 +33,17 @@ public class Merman extends LinearOpMode {
     private boolean isOutSlideDown;
     private boolean isIntSlideDown;
 
-    private int outTargetPosition = OutConst.slidesDown;
-    private int intTargetPosition = OutConst.slidesDown;
+    //configs
+    private MotorConfig motorConfig;
+    private ServoConfig servoConfig;
+
+    private enum RobotStates{
+        INIT,
+        GRAB,
+        TRANSFER,
+        RETRACT
+    }
+    private RobotStates state = RobotStates.INIT;
 
 
     @Override
@@ -53,10 +61,64 @@ public class Merman extends LinearOpMode {
 
         while (opModeIsActive()) {
             movement();
+            robotState();
             setOutPID();
             setIntPID();
             updatePIDFController();
         }
+    }
+
+    public ElapsedTime intakeTimer = new ElapsedTime();
+
+    public void robotState(){
+        switch (state){
+            case INIT:
+            {
+                servoConfig.setInitPos();
+                fraction =1;
+                if(gamepad1.a){
+                    state = RobotStates.GRAB;
+                }
+            }
+            case GRAB:
+            {
+                extend();
+                servoConfig.setOuttakePos(OutConst.Lr_TRANSFER, OutConst.Y_TRANSFER, OutConst.Link_TRANSFER, OutConst.Claw_TRANSFER);
+                fraction = 4;
+
+                if (gamepad1.square)
+                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_INIT);
+                if (gamepad1.circle)
+                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_90);
+
+                if(gamepad1.right_trigger>0){
+                    intakeTimer.reset();
+                    state = RobotStates.RETRACT;
+                }
+            }
+            case RETRACT:
+            {
+                servoConfig.intClaw.setPosition(IntConst.Claw_CLOSED);
+
+                if(intakeTimer.milliseconds()>100)
+                    servoConfig.intY.setPosition(IntConst.Y_INIT);
+                if(intakeTimer.milliseconds()>300){
+                    servoConfig.intRot.setPosition(IntConst.Rot_INIT);
+                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_INIT);
+                }
+
+
+            }
+
+        }
+    }
+
+    public void extend(){
+        intTargetPosition = 900;
+        servoConfig.intRot.setPosition(IntConst.Rot_GRAB);
+        servoConfig.intY.setPosition(IntConst.Y_GRAB);
+        servoConfig.intClaw.setPosition(IntConst.Claw_OPEN);
+
     }
 
     public void movement() {
@@ -132,16 +194,16 @@ public class Merman extends LinearOpMode {
 
         if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
 
-        if (motorConfig.intakeMotor.getCurrentPosition() < 60 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideDown) {
-            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        if (motorConfig.intakeMotor.getCurrentPosition() < 60 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
+            motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             isIntSlideDown = true;
         }
 
-        if (intTargetPosition == IntConst.slideDown && isIntSlideDown)
+        if (intTargetPosition == IntConst.slideRetracted && isIntSlideDown)
             motorConfig.intakeMotor.setPower(0);
 
-        if (intTargetPosition == IntConst.slideDown && motorConfig.intakeMotor.getCurrentPosition() > 10)
+        if (intTargetPosition == IntConst.slideRetracted && motorConfig.intakeMotor.getCurrentPosition() > 10)
             motorConfig.intakeMotor.setPower(-1);
 
         else motorConfig.intakeMotor.setPower(IntakePower);

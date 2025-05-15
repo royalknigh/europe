@@ -17,8 +17,6 @@ public class MotorConfig {
 
     public static DcMotorEx intakeMotor;
 
-
-
     public MotorConfig(HardwareMap hardwareMap) {
         frontLeftMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "frontLeftMotor");
         backLeftMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "backLeftMotor");
