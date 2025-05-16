@@ -6,16 +6,16 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
-import com.qualcomm.robotcore.util.Range;
 
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
 
 import configs.MotorConfig;
+import consts.IntConst;
+import consts.OutConst;
 
 @Config
-@TeleOp(name = "Outtake PIDF", group = "NonComp")
+@TeleOp(name = "Outtake Dashboard", group = "NonComp")
 public class Outtake extends OpMode {
 
     private FtcDashboard dashboard;
@@ -33,11 +33,8 @@ public class Outtake extends OpMode {
     public static double y;
     public static double claw;
 
-
     private boolean areSlidesDown = true;
 
-    private static final int MIN_POSITION = 0;
-    private static final int MAX_POSITION = 3990;
     private static final int TOLERANCE = 10;
 
     public static double P = 0.01;
@@ -46,6 +43,22 @@ public class Outtake extends OpMode {
     public static double F = 0.008;
 
     public static double targetPosition = 0;
+
+    public Servo intRot;
+    public Servo intY;
+    public Servo intClawRot;
+    public Servo intClaw;
+
+
+    public static double iP = 0, iI = 0, iD = 0, iF = 0;
+    private PIDFController intPID;
+    public static int intTargetPosition = OutConst.slidesDown;
+    private boolean isIntSlideDown;
+
+    public static double intakeRot = 0.5;
+    public static double clawRot;
+    public static double intakeY;
+    public static double intakeClaw;
 
     @Override
     public void init() {
@@ -57,6 +70,11 @@ public class Outtake extends OpMode {
         outY = hardwareMap.get(Servo.class, "outY");
         outClaw = hardwareMap.get(Servo.class, "outClaw");
 
+        intRot = hardwareMap.get(Servo.class, "intRot");
+        intY = hardwareMap.get(Servo.class, "intY");
+        intClawRot = hardwareMap.get(Servo.class, "intClawRot");
+        intClaw = hardwareMap.get(Servo.class, "intClaw");
+
         updatePIDFController();
 
         // Initialize FTC Dashboard
@@ -67,6 +85,15 @@ public class Outtake extends OpMode {
 
     @Override
     public void loop() {
+        setIntPID();
+        updatePIDFController1();
+        updatePIDFController();
+
+        intClaw.setPosition(intakeClaw);
+        intRot.setPosition(intakeRot);
+        intY.setPosition(intakeY);
+        intClawRot.setPosition(clawRot);
+
         setServoPositions();
 
         pidfController.setTargetPosition(targetPosition);
@@ -107,10 +134,12 @@ public class Outtake extends OpMode {
 
         telemetry.addData("Right Motor Power", motorConfig.backSlideMotor.getPower());
         telemetry.addData("Left Motor Power", motorConfig.frontSlideMotor.getPower());
+
+
         telemetry.update();
     }
 
-    private void updatePIDFController() {
+    private void updatePIDFController1() {
         CustomPIDFCoefficients coefficients = new CustomPIDFCoefficients(P, I, D, F);
         pidfController = new PIDFController(coefficients);
     }
@@ -121,5 +150,39 @@ public class Outtake extends OpMode {
         outLink.setPosition(link);
         outY.setPosition(y);
         outClaw.setPosition(claw);
+    }
+
+    public void setIntPID() {
+        intPID.setTargetPosition(intTargetPosition);
+        intPID.updatePosition(motorConfig.intakeMotor.getCurrentPosition());
+
+        double IntakePower = intPID.runPIDF();
+
+        if (Math.abs(motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition) < 10)
+            IntakePower = 0;
+
+        if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
+
+        if (motorConfig.intakeMotor.getCurrentPosition() < 60 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
+            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+            isIntSlideDown = true;
+        }
+
+        if (intTargetPosition == IntConst.slideRetracted && isIntSlideDown)
+            motorConfig.intakeMotor.setPower(0);
+
+        if (intTargetPosition == IntConst.slideRetracted && motorConfig.intakeMotor.getCurrentPosition() > 10)
+            motorConfig.intakeMotor.setPower(-1);
+
+        else motorConfig.intakeMotor.setPower(IntakePower);
+
+        motorConfig.intakeMotor.setPower(IntakePower);
+
+    }
+
+    public void updatePIDFController() {
+        CustomPIDFCoefficients intCoefficients = new CustomPIDFCoefficients(iP, iI, iD, iF);
+        intPID = new PIDFController(intCoefficients);
     }
 }

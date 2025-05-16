@@ -7,17 +7,20 @@ public class IntConst {
     public static final double ptoLock =0;
     public static final double ptoUnlock =0;
 
-    public static final double Rot_INIT = 0.5;
-    public static final double Rot_GRAB = 0;
+    public static final double rot_INIT = 0.5;
+    public static final double rot_GRAB = 0;
+    public static final double rot_DROP = 0;
 
-    public static final double Y_INIT = 0;
-    public static final double Y_GRAB = 0;
 
-    public static final double ClawRot_INIT = 0;
-    public static final double ClawRot_90 = 0;
+    public static final double y_INIT = 0;
+    public static final double y_GRAB = 0;
+    public static final double y_DROP = 0;
 
-    public static final double Claw_OPEN = 0;
-    public static final double Claw_CLOSED = 0;
+    public static final double clawRot_INIT = 0;
+    public static final double clawRot_90 = 0;
+
+    public static final double claw_OPEN = 0;
+    public static final double claw_CLOSED = 0;
 
 
     public static int slideRetracted = 0;

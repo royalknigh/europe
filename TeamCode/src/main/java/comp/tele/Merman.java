@@ -40,8 +40,15 @@ public class Merman extends LinearOpMode {
     private enum RobotStates{
         INIT,
         GRAB,
+        GRAB_SPECIMEN,
         TRANSFER,
-        RETRACT
+        RETRACT_SAMPLE,
+        RETRACT_SPECIMEN,
+        INTERMEDIATE,
+        SAMPLE_HIGH,
+        SAMPLE_LOW,
+        SPECIMEN_PICKUP,
+        SPECIMEN_PLACE
     }
     private RobotStates state = RobotStates.INIT;
 
@@ -65,60 +72,111 @@ public class Merman extends LinearOpMode {
             setOutPID();
             setIntPID();
             updatePIDFController();
+            panicButton();
+
+            telemetry.addData("state", state);
+            telemetry.update();
         }
     }
 
     public ElapsedTime intakeTimer = new ElapsedTime();
+    public ElapsedTime transferTimer = new ElapsedTime();
 
     public void robotState(){
         switch (state){
             case INIT:
             {
                 servoConfig.setInitPos();
-                fraction =1;
-                if(gamepad1.a){
+                intTargetPosition = IntConst.slideRetracted;
+                outTargetPosition = OutConst.slidesDown;
+                fraction = 1;
+                if(gamepad1.right_trigger>0){
                     state = RobotStates.GRAB;
                 }
+                break;
             }
             case GRAB:
             {
-                extend();
-                servoConfig.setOuttakePos(OutConst.Lr_TRANSFER, OutConst.Y_TRANSFER, OutConst.Link_TRANSFER, OutConst.Claw_TRANSFER);
+                extendIntake();
                 fraction = 4;
-
                 if (gamepad1.square)
-                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_INIT);
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
                 if (gamepad1.circle)
-                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_90);
-
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
                 if(gamepad1.right_trigger>0){
                     intakeTimer.reset();
-                    state = RobotStates.RETRACT;
+                    state = RobotStates.RETRACT_SAMPLE;
                 }
+                if(gamepad1.left_trigger>0){
+                    intakeTimer.reset();
+                    state = RobotStates.RETRACT_SAMPLE;
+                }
+                break;
             }
-            case RETRACT:
+            case RETRACT_SAMPLE:
             {
-                servoConfig.intClaw.setPosition(IntConst.Claw_CLOSED);
-
-                if(intakeTimer.milliseconds()>100)
-                    servoConfig.intY.setPosition(IntConst.Y_INIT);
-                if(intakeTimer.milliseconds()>300){
-                    servoConfig.intRot.setPosition(IntConst.Rot_INIT);
-                    servoConfig.intClawRot.setPosition(IntConst.ClawRot_INIT);
+                servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+                fraction = 1;
+                if(intakeTimer.milliseconds()>300) {
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+                    servoConfig.intY.setPosition(IntConst.y_INIT);
                 }
-
+                if(intakeTimer.milliseconds()>600){
+                    servoConfig.intRot.setPosition(IntConst.rot_INIT);
+                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+                    transferTimer.reset();
+                    state = RobotStates.TRANSFER;
+                }
+                break;
+            }
+            case RETRACT_SPECIMEN:
+            {
+                servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+                fraction = 1;
+                if(intakeTimer.milliseconds()>300) {
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+                    servoConfig.intY.setPosition(IntConst.y_DROP);
+                }
+                if(intakeTimer.milliseconds()>600){
+                    servoConfig.intRot.setPosition(IntConst.rot_DROP);
+                    if(gamepad1.left_trigger>0){
+                        servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                        state = RobotStates.INIT;
+                    }
+                }
+                break;
 
             }
-
+            case TRANSFER:
+            {
+                if(transferTimer.milliseconds()>100)
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                if(transferTimer.milliseconds()>200)
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                if(transferTimer.milliseconds()>300) {
+                    servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.link_INIT, OutConst.y_SAMPLE, OutConst.claw_CLOSED);
+                    state = RobotStates.INTERMEDIATE;
+                }
+            }
+            case INTERMEDIATE:
+            {
+                if(-gamepad1.right_stick_y >0.4)
+                    state = RobotStates.SAMPLE_HIGH;
+                if(-gamepad1.right_stick_y <-0.4)
+                    state = RobotStates.SAMPLE_LOW;
+                if(gamepad2.left_trigger>0)
+                    state = RobotStates.SPECIMEN_PICKUP;
+            }
         }
     }
 
-    public void extend(){
-        intTargetPosition = 900;
-        servoConfig.intRot.setPosition(IntConst.Rot_GRAB);
-        servoConfig.intY.setPosition(IntConst.Y_GRAB);
-        servoConfig.intClaw.setPosition(IntConst.Claw_OPEN);
-
+    public void extendIntake(){
+        intTargetPosition = IntConst.slideExtended;
+        if(motorConfig.frontSlideMotor.getCurrentPosition()>IntConst.slideExtended-100){
+            servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+            servoConfig.intY.setPosition(IntConst.y_GRAB);
+            servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+        }
     }
 
     public void movement() {
@@ -149,10 +207,10 @@ public class Merman extends LinearOpMode {
         outPID.setTargetPosition(outTargetPosition);
         outPID.updatePosition(motorConfig.frontSlideMotor.getCurrentPosition());
 
-        double OuttakePower = outPID.runPIDF();
+        double outtakePower = outPID.runPIDF();
 
         if (Math.abs(motorConfig.frontSlideMotor.getCurrentPosition() - outTargetPosition) < 10) {
-            OuttakePower = 0;
+            outtakePower = 0;
         }
         if (motorConfig.frontSlideMotor.getCurrentPosition() > 10) isOutSlideDown = false;
 
@@ -175,22 +233,22 @@ public class Merman extends LinearOpMode {
             motorConfig.backSlideMotor.setPower(-1);
 
         } else {
-            motorConfig.frontSlideMotor.setPower(OuttakePower);
-            motorConfig.backSlideMotor.setPower(OuttakePower);
+            motorConfig.frontSlideMotor.setPower(outtakePower);
+            motorConfig.backSlideMotor.setPower(outtakePower);
         }
 
-        motorConfig.frontSlideMotor.setPower(OuttakePower);
-        motorConfig.backSlideMotor.setPower(OuttakePower);
+        motorConfig.frontSlideMotor.setPower(outtakePower);
+        motorConfig.backSlideMotor.setPower(outtakePower);
     }
 
     public void setIntPID() {
         intPID.setTargetPosition(intTargetPosition);
         intPID.updatePosition(motorConfig.intakeMotor.getCurrentPosition());
 
-        double IntakePower = intPID.runPIDF();
+        double intakePower = intPID.runPIDF();
 
         if (Math.abs(motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition) < 10)
-            IntakePower = 0;
+            intakePower = 0;
 
         if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
 
@@ -206,10 +264,15 @@ public class Merman extends LinearOpMode {
         if (intTargetPosition == IntConst.slideRetracted && motorConfig.intakeMotor.getCurrentPosition() > 10)
             motorConfig.intakeMotor.setPower(-1);
 
-        else motorConfig.intakeMotor.setPower(IntakePower);
+        else motorConfig.intakeMotor.setPower(intakePower);
 
-        motorConfig.intakeMotor.setPower(IntakePower);
+        motorConfig.intakeMotor.setPower(intakePower);
 
+    }
+
+    public void panicButton(){
+        if(gamepad2.dpad_down)
+            state = RobotStates.INIT;
     }
 }
 

@@ -60,16 +60,16 @@ public class ServoConfig {
     }
 
     public void setInitPos() {
-        intRot.setPosition(IntConst.Rot_INIT);
-        intY.setPosition(IntConst.Y_INIT);
-        intClawRot.setPosition(IntConst.ClawRot_INIT);
-        intClaw.setPosition(IntConst.Claw_CLOSED);
+        intRot.setPosition(IntConst.rot_INIT);
+        intY.setPosition(IntConst.y_INIT);
+        intClawRot.setPosition(IntConst.clawRot_INIT);
+        intClaw.setPosition(IntConst.claw_CLOSED);
 
-        outRight.setPosition(OutConst.Lr_INIT);
-        outLeft.setPosition(OutConst.Lr_INIT);
-        outY.setPosition(OutConst.Y_INIT);
-        outLink.setPosition(OutConst.Link_INIT);
-        outClaw.setPosition(OutConst.Claw_INIT);
+        outRight.setPosition(OutConst.lr_INIT);
+        outLeft.setPosition(OutConst.lr_INIT);
+        outY.setPosition(OutConst.y_INIT);
+        outLink.setPosition(OutConst.link_INIT);
+        outClaw.setPosition(OutConst.claw_OPEN);
 
         ptoRot.setPosition(IntConst.ptoUnlock);
 
