@@ -93,6 +93,8 @@ public class Merman extends LinearOpMode {
                 if(gamepad1.right_trigger>0){
                     state = RobotStates.GRAB;
                 }
+                if(gamepad2.left_trigger>0)
+                    state = RobotStates.SPECIMEN_PICKUP;
                 break;
             }
             case GRAB:
@@ -109,7 +111,7 @@ public class Merman extends LinearOpMode {
                 }
                 if(gamepad1.left_trigger>0){
                     intakeTimer.reset();
-                    state = RobotStates.RETRACT_SAMPLE;
+                    state = RobotStates.RETRACT_SPECIMEN;
                 }
                 break;
             }
@@ -141,7 +143,7 @@ public class Merman extends LinearOpMode {
                     servoConfig.intRot.setPosition(IntConst.rot_DROP);
                     if(gamepad1.left_trigger>0){
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
-                        state = RobotStates.INIT;
+                        state = RobotStates.INTERMEDIATE;
                     }
                 }
                 break;
@@ -154,18 +156,37 @@ public class Merman extends LinearOpMode {
                 if(transferTimer.milliseconds()>200)
                     servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                 if(transferTimer.milliseconds()>300) {
-                    servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.link_INIT, OutConst.y_SAMPLE, OutConst.claw_CLOSED);
+                    servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.y_SAMPLE, OutConst.link_INIT, OutConst.claw_CLOSED);
                     state = RobotStates.INTERMEDIATE;
                 }
             }
             case INTERMEDIATE:
             {
-                if(-gamepad1.right_stick_y >0.4)
-                    state = RobotStates.SAMPLE_HIGH;
-                if(-gamepad1.right_stick_y <-0.4)
-                    state = RobotStates.SAMPLE_LOW;
-                if(gamepad2.left_trigger>0)
-                    state = RobotStates.SPECIMEN_PICKUP;
+                if(-gamepad1.right_stick_y >0.3) state = RobotStates.SAMPLE_HIGH;
+                if(-gamepad1.right_stick_y <-0.3) state = RobotStates.SAMPLE_LOW;
+                if(gamepad1.right_trigger>0) state = RobotStates.GRAB;
+                if(gamepad2.left_trigger>0) state = RobotStates.SPECIMEN_PICKUP;
+            }
+            case SAMPLE_HIGH:
+            {
+                outTargetPosition= OutConst.slidesSampleHigh;
+                servoConfig.outLink.setPosition(OutConst.link_PLACE);
+                if(gamepad1.left_trigger>0)
+                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+            }
+            case SAMPLE_LOW:
+            {
+                outTargetPosition = OutConst.slidesSampleLow;
+                servoConfig.outLink.setPosition(OutConst.link_PLACE);
+                if(gamepad1.left_trigger>0)
+                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+            }
+            case SPECIMEN_PICKUP:
+            {
+                servoConfig.setOuttakePos(OutConst.lr_PICK,OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
+                if(gamepad2.right_trigger>0)
+                    servoConfig.setOuttakePos(OutConst.lr_SPEC,OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED );
+                // gotta finish
             }
         }
     }
