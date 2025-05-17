@@ -214,6 +214,7 @@ public class Merman extends LinearOpMode {
                     if (gamepad2.right_trigger > 0) {
                         servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                         outTargetPosition = OutConst.slideSpecimen;
+
                         // TODO: SEE IF I HAVE TO LOWER THE SLIDES TOO
                     }
                 }
