@@ -98,15 +98,20 @@ public class Merman extends LinearOpMode {
                     state = RobotStates.GRAB;
                     extend = true;
                 }
-                if (gamepad2.left_trigger > 0)
-                    state = RobotStates.SPECIMEN_PICKUP;        //gotta work on it and test
+                if (gamepad2.left_trigger > 0){
+                    servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
+                    pickupTimer.reset();
+                    outClosed = true;                               //gotta work on it and test
+                    state = RobotStates.SPECIMEN_PICKUP;
+                }
+
                 break;
             }
             case GRAB: {
                 fraction = 4;
                 if (extend) {
-                    extend = false;
                     extendIntake();
+                    extend = false;
                 }
                 if (gamepad1.square) servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
                 if (gamepad1.circle) servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
@@ -147,6 +152,8 @@ public class Merman extends LinearOpMode {
                     if (gamepad1.left_trigger > 0) {
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                         state = RobotStates.INTERMEDIATE;
+
+                        //TODO: SEE IF I HAVE TO MOVE THE OUTTAKE TO SAMPLE POSITION
                     }
                 }
                 break;
@@ -176,7 +183,10 @@ public class Merman extends LinearOpMode {
                     outClosed = true;
                     state = RobotStates.SPECIMEN_PICKUP;
                 }
-                if (gamepad1.a) state = RobotStates.GRAB;
+                if (gamepad1.a) {
+                    state = RobotStates.GRAB;
+                    extend = true;
+                }
             }
             case SAMPLE_HIGH: {
                 outTargetPosition = OutConst.slidesSampleHigh;
@@ -201,9 +211,9 @@ public class Merman extends LinearOpMode {
                 }
                 if (pickupTimer.milliseconds() > 50) {
                     servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED);
-                    if (gamepad2.right_trigger > 0){
+                    if (gamepad2.right_trigger > 0) {
                         servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
-
+                        outTargetPosition = OutConst.slideSpecimen;
                         // TODO: SEE IF I HAVE TO LOWER THE SLIDES TOO
                     }
                 }
