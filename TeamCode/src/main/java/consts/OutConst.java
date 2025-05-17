@@ -24,6 +24,7 @@ public class OutConst {
     public static final int slidesDown = 0;
     public static final int slidesSampleHigh = 0;
     public static final int slidesSampleLow = 0;
+    public static final int slideSpecimen = 0;
 
 
 }
