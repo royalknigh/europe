@@ -30,7 +30,7 @@ public class Intake extends LinearOpMode {
 
     public static double iP = 0, iI = 0, iD = 0, iF = 0;
     private PIDFController intPID;
-    public static int intTargetPosition = OutConst.slidesDown;
+    public static int intTargetPosition = 0;
     private boolean isIntSlideDown;
 
     public static double intakeRot = 0.5;
@@ -54,8 +54,8 @@ public class Intake extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            setIntPID();
-            updatePIDFController();
+            //setIntPID();
+           // updatePIDFController();
 
             intClaw.setPosition(intakeClaw);
             intRot.setPosition(intakeRot);

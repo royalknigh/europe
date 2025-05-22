@@ -14,7 +14,6 @@ import consts.IntConst;
 import consts.OutConst;
 
 @TeleOp(name = "\uD83E\uDDDC Merman", group = "TeleOp")
-@Disabled
 public class Merman extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
@@ -107,7 +106,7 @@ public class Merman extends LinearOpMode {
 
                 break;
             }
-            case GRAB: {
+            /*case GRAB: {
                 fraction = 4;
                 if (extend) {
                     extendIntake();
@@ -144,13 +143,13 @@ public class Merman extends LinearOpMode {
             case RETRACT_SPECIMEN: {
                 fraction = 1;
                 if (intakeTimer.milliseconds() > 300) {
-                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
                     servoConfig.intRot.setPosition(IntConst.rot_DROP);
                     servoConfig.intY.setPosition(IntConst.y_DROP);
                 }
                 if (intakeTimer.milliseconds() > 600) {
                     if (gamepad1.left_trigger > 0) {
-                        servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                        servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                         state = RobotStates.INTERMEDIATE;
 
                         //TODO: SEE IF I HAVE TO MOVE THE OUTTAKE TO SAMPLE POSITION
@@ -218,7 +217,7 @@ public class Merman extends LinearOpMode {
                         // TODO: SEE IF I HAVE TO LOWER THE SLIDES TOO
                     }
                 }
-            }
+            }*/
         }
     }
 
@@ -324,5 +323,6 @@ public class Merman extends LinearOpMode {
         if (gamepad2.dpad_down || gamepad1.dpad_down)
             state = RobotStates.INIT;
     }
+
 }
 

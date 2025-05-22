@@ -14,7 +14,7 @@ import com.pedropathing.util.Timer;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-@Autonomous(name = "Example Auto Blue", group = "Examples")
+@Autonomous(name = "Example", group = "Examples")
 public class SampleAuto extends OpMode {
 
     private Follower follower;

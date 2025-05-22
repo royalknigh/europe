@@ -25,9 +25,9 @@ public class ServoConfig {
 
     public ServoConfig(HardwareMap hardwareMap) {
 //        //pto
-//        ptoLeft = hardwareMap.get(Servo.class, "ptoLeft");
-//        ptoRight = hardwareMap.get(Servo.class, "ptoRight");
-//        ptoRot = hardwareMap.get(Servo.class, "ptoRot");
+       ptoLeft = hardwareMap.get(Servo.class, "ptoLeft");
+        ptoRight = hardwareMap.get(Servo.class, "ptoRight");
+       ptoRot = hardwareMap.get(Servo.class, "ptoRot");
 //
 //        //outtake
 //        outLeft = hardwareMap.get(Servo.class, "outLeft");
@@ -42,6 +42,8 @@ public class ServoConfig {
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
+        intRot.setDirection(Servo.Direction.FORWARD);
+
     }
 
     public void setIntakePos(double rot, double y, double clawRot, double claw) {
@@ -50,6 +52,8 @@ public class ServoConfig {
         intClawRot.setPosition(clawRot);
         intClaw.setPosition(claw);
     }
+
+
 
     public void setOuttakePos(double lr, double y, double link, double claw) {
         outRight.setPosition(lr);
