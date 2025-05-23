@@ -1,5 +1,8 @@
 package configs;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad2;
+
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 
@@ -69,28 +72,18 @@ public class ServoConfig {
         intClawRot.setPosition(IntConst.clawRot_INIT);
         intClaw.setPosition(IntConst.claw_CLOSED);
 
-        outRight.setPosition(OutConst.lr_INIT);
-        outLeft.setPosition(OutConst.lr_INIT);
-        outY.setPosition(OutConst.y_INIT);
-        outLink.setPosition(OutConst.link_INIT);
-        outClaw.setPosition(OutConst.claw_OPEN);
-
+//        outRight.setPosition(OutConst.lr_INIT);
+//        outLeft.setPosition(OutConst.lr_INIT);
+//        outY.setPosition(OutConst.y_INIT);
+//        outLink.setPosition(OutConst.link_INIT);
+//        outClaw.setPosition(OutConst.claw_OPEN);
+//
         ptoRot.setPosition(IntConst.ptoUnlock);
 
         ptoLeft.setPosition(IntConst.ptoLegsUp);
         ptoRight.setPosition(IntConst.ptoLegsUp);
     }
 
-    public void lowerLegs() {
-        ptoLeft.setPosition(IntConst.ptoLegsDown);
-        ptoRight.setPosition(IntConst.ptoLegsDown);
-        ptoRot.setPosition(IntConst.ptoLock);
-    }
-
-    public void raiseLegs() {
-        ptoLeft.setPosition(IntConst.ptoLegsUp);
-        ptoRight.setPosition(IntConst.ptoLegsUp);
-    }
 
 
 }

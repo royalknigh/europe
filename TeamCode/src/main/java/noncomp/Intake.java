@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import configs.MotorConfig;
 import configs.ServoConfig;
 import consts.IntConst;
-import consts.OutConst;
 
 
 @Config
@@ -26,6 +25,9 @@ public class Intake extends LinearOpMode {
     public Servo intY;
     public Servo intClawRot;
     public Servo intClaw;
+    public Servo ptoRot;
+    public Servo ptoLeft;
+    public Servo ptoRight;
 
 
     public static double iP = 0, iI = 0, iD = 0, iF = 0;
@@ -33,10 +35,13 @@ public class Intake extends LinearOpMode {
     public static int intTargetPosition = 0;
     private boolean isIntSlideDown;
 
-    public static double intakeRot = 0.5;
-    public static double clawRot;
-    public static double intakeY;
-    public static double intakeClaw;
+    public static double intakeRot = IntConst.rot_INIT;
+    public static double clawRot = IntConst.clawRot_INIT;
+    public static double intakeY = IntConst.y_INIT;
+    public static double intakeClaw = IntConst.claw_OPEN;
+    public static double ptorot ;
+    public static double legs;
+
 
     @Override
     public void runOpMode() {
@@ -47,9 +52,15 @@ public class Intake extends LinearOpMode {
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
+        ptoRot = hardwareMap.get(Servo.class, "ptoRot");
+        ptoLeft = hardwareMap.get(Servo.class, "ptoLeft");
+        ptoRight = hardwareMap.get(Servo.class, "ptoRight");
+
         dashboard = FtcDashboard.getInstance();
         dashboard.setTelemetryTransmissionInterval(25);
         telemetry = dashboard.getTelemetry();
+
+
 
         waitForStart();
 
@@ -61,6 +72,10 @@ public class Intake extends LinearOpMode {
             intRot.setPosition(intakeRot);
             intY.setPosition(intakeY);
             intClawRot.setPosition(clawRot);
+
+            ptoRot.setPosition(ptorot);
+            ptoLeft.setPosition(legs);
+            ptoRight.setPosition(legs);
 
             telemetry.addData("intakeRot", intakeRot);
 

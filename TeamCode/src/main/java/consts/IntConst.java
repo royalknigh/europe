@@ -2,9 +2,9 @@ package consts;
 
 public class IntConst {
     //pto
-    public static final double ptoLegsUp = 0;
-    public static final double ptoLegsDown = 0;
-    public static final double ptoLock =0;
+    public static final double ptoLegsUp = 0.2;
+    public static final double ptoLegsDown = 0.9;
+    public static final double ptoLock =0.6;
     public static final double ptoUnlock =0;
 
     public static final double rot_INIT = 0.87;      //0.1 si 0.9
