@@ -20,7 +20,23 @@ public class Outtake extends OpMode {
 
     private FtcDashboard dashboard;
     private MotorConfig motorConfig;
+
+    private boolean areSlidesDown = true;
+
+
+    public static double oP = 0, oI = 0, oD = 0, oF = 0;
+
     private PIDFController pidfController;
+    public static double targetPosition = 0;
+
+    public static double iP = 0, iI = 0, iD = 0, iF = 0;
+    private PIDFController intPID;
+    public static int intTargetPosition = 0;
+
+    public Servo intRot;
+    public Servo intY;
+    public Servo intClawRot;
+    public Servo intClaw;
 
     public Servo outLeft;
     public Servo outRight;
@@ -28,37 +44,18 @@ public class Outtake extends OpMode {
     public Servo outY;
     public Servo outClaw;
 
-    public static double lr;
-    public static double link;
-    public static double y;
-    public static double claw;
 
-    private boolean areSlidesDown = true;
-
-    private static final int TOLERANCE = 10;
-
-    public static double P = 0.01;
-    public static double I = 0.0001;
-    public static double D = 0.0003;
-    public static double F = 0.008;
-
-    public static double targetPosition = 0;
-
-    public Servo intRot;
-    public Servo intY;
-    public Servo intClawRot;
-    public Servo intClaw;
-
-
-    public static double iP = 0, iI = 0, iD = 0, iF = 0;
-    private PIDFController intPID;
-    public static int intTargetPosition = OutConst.slidesDown;
     private boolean isIntSlideDown;
 
-    public static double intakeRot = 0.5;
-    public static double clawRot;
-    public static double intakeY;
-    public static double intakeClaw;
+    public static double intakeRot = IntConst.rot_INIT;
+    public static double clawRot = IntConst.clawRot_INIT;
+    public static double intakeY = IntConst.y_INIT;
+    public static double intakeClaw = IntConst.claw_OPEN;
+
+    public static double outLr = OutConst.lr_INIT;
+    public static double outlink;
+    public static double outy;
+    public static double outclaw;
 
     @Override
     public void init() {
@@ -66,8 +63,8 @@ public class Outtake extends OpMode {
 
         outLeft = hardwareMap.get(Servo.class, "outLeft");
         outRight = hardwareMap.get(Servo.class, "outRight");
-        outLink = hardwareMap.get(Servo.class, "outLink");
         outY = hardwareMap.get(Servo.class, "outY");
+        outLink = hardwareMap.get(Servo.class, "outLink");
         outClaw = hardwareMap.get(Servo.class, "outClaw");
 
         intRot = hardwareMap.get(Servo.class, "intRot");
@@ -75,24 +72,29 @@ public class Outtake extends OpMode {
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
-        updatePIDFController();
+        outRight.setDirection(Servo.Direction.REVERSE);
+
+        updatePIDFController1();
 
         // Initialize FTC Dashboard
         dashboard = FtcDashboard.getInstance();
         dashboard.setTelemetryTransmissionInterval(25);
         telemetry = dashboard.getTelemetry();
+
+
+
+//        intRot.setPosition(IntConst.rot_INIT);
+//        intY.setPosition(IntConst.y_INIT);
+//        intClawRot.setPosition(IntConst.clawRot_INIT);
+//        intClaw.setPosition(IntConst.claw_CLOSED);
     }
 
     @Override
     public void loop() {
-        setIntPID();
-        updatePIDFController1();
-        updatePIDFController();
+//        setIntPID();
+//        updatePIDFController();
 
-        intClaw.setPosition(intakeClaw);
-        intRot.setPosition(intakeRot);
-        intY.setPosition(intakeY);
-        intClawRot.setPosition(clawRot);
+        updatePIDFController1();
 
         setServoPositions();
 
@@ -101,22 +103,9 @@ public class Outtake extends OpMode {
 
         double powerLeft = pidfController.runPIDF();
 
-        if (Math.abs(motorConfig.frontSlideMotor.getCurrentPosition() - targetPosition) <= TOLERANCE) {
-            powerLeft = 0;
-        }
-        if (motorConfig.frontSlideMotor.getCurrentPosition() > 10)
-            areSlidesDown = false;
-        if (motorConfig.frontSlideMotor.getVelocity() < 0.1 && motorConfig.frontSlideMotor.getCurrentPosition() < 10) {
-            MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
 
-            MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-            MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
-            areSlidesDown = true;
-        } else {
             motorConfig.frontSlideMotor.setPower(powerLeft);
             motorConfig.backSlideMotor.setPower(powerLeft);
-        }
 
         if (-gamepad1.left_stick_y > 0.1) {
             targetPosition += 40;
@@ -135,21 +124,26 @@ public class Outtake extends OpMode {
         telemetry.addData("Right Motor Power", motorConfig.backSlideMotor.getPower());
         telemetry.addData("Left Motor Power", motorConfig.frontSlideMotor.getPower());
 
-
         telemetry.update();
     }
 
     private void updatePIDFController1() {
-        CustomPIDFCoefficients coefficients = new CustomPIDFCoefficients(P, I, D, F);
+        CustomPIDFCoefficients coefficients = new CustomPIDFCoefficients(oP, oI, oD, oF);
         pidfController = new PIDFController(coefficients);
     }
 
     public void setServoPositions() {
-        outLeft.setPosition(lr);
-        outRight.setPosition(lr);
-        outLink.setPosition(link);
-        outY.setPosition(y);
-        outClaw.setPosition(claw);
+        outLeft.setPosition(outLr);
+        outRight.setPosition(outLr);
+        outY.setPosition(outy);
+        outLink.setPosition(outlink);
+        outClaw.setPosition(outclaw);
+
+        intClaw.setPosition(intakeClaw);
+        intRot.setPosition(intakeRot);
+        intY.setPosition(intakeY);
+        intClawRot.setPosition(clawRot);
+
     }
 
     public void setIntPID() {

@@ -31,7 +31,7 @@ public class Intake extends LinearOpMode {
 
 
     public static double iP = 0, iI = 0, iD = 0, iF = 0;
-    private PIDFController intPID;
+    public PIDFController intPID;
     public static int intTargetPosition = 0;
     private boolean isIntSlideDown;
 
@@ -39,7 +39,7 @@ public class Intake extends LinearOpMode {
     public static double clawRot = IntConst.clawRot_INIT;
     public static double intakeY = IntConst.y_INIT;
     public static double intakeClaw = IntConst.claw_OPEN;
-    public static double ptorot ;
+    public static double ptorot = IntConst.ptoUnlock ;
     public static double legs;
 
 
@@ -65,8 +65,8 @@ public class Intake extends LinearOpMode {
         waitForStart();
 
         while (opModeIsActive()) {
-            //setIntPID();
-           // updatePIDFController();
+            updatePIDFController();
+            setIntPID();
 
             intClaw.setPosition(intakeClaw);
             intRot.setPosition(intakeRot);
@@ -78,6 +78,9 @@ public class Intake extends LinearOpMode {
             ptoRight.setPosition(legs);
 
             telemetry.addData("intakeRot", intakeRot);
+
+            telemetry.addData("Target Position", intTargetPosition);
+            telemetry.addData(" Motor Position", motorConfig.intakeMotor.getCurrentPosition());
 
             telemetry.update();
         }
@@ -94,7 +97,7 @@ public class Intake extends LinearOpMode {
 
         if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
 
-        if (motorConfig.intakeMotor.getCurrentPosition() < 60 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
+        if (motorConfig.intakeMotor.getCurrentPosition() < 30 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
             MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             isIntSlideDown = true;

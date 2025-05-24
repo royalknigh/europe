@@ -55,7 +55,8 @@ public class MotorConfig {
 
         //intake
         intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-        intakeMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        intakeMotor.setDirection(DcMotorEx.Direction.REVERSE);
+        intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
         intakeMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
 

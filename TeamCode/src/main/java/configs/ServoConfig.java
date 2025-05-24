@@ -33,11 +33,11 @@ public class ServoConfig {
        ptoRot = hardwareMap.get(Servo.class, "ptoRot");
 //
 //        //outtake
-//        outLeft = hardwareMap.get(Servo.class, "outLeft");
-//        outRight = hardwareMap.get(Servo.class, "outRight");
-//        outLink = hardwareMap.get(Servo.class, "outLink");
-//        outY = hardwareMap.get(Servo.class, "outY");
-//        outClaw = hardwareMap.get(Servo.class, "outClaw");
+        outLeft = hardwareMap.get(Servo.class, "outLeft");
+        outRight = hardwareMap.get(Servo.class, "outRight");
+        outLink = hardwareMap.get(Servo.class, "outLink");
+        outY = hardwareMap.get(Servo.class, "outY");
+        outClaw = hardwareMap.get(Servo.class, "outClaw");
 
         //intake
         intRot = hardwareMap.get(Servo.class, "intRot");
@@ -45,7 +45,7 @@ public class ServoConfig {
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
-        intRot.setDirection(Servo.Direction.FORWARD);
+        outRight.setDirection(Servo.Direction.REVERSE);
 
     }
 
@@ -72,11 +72,11 @@ public class ServoConfig {
         intClawRot.setPosition(IntConst.clawRot_INIT);
         intClaw.setPosition(IntConst.claw_CLOSED);
 
-//        outRight.setPosition(OutConst.lr_INIT);
-//        outLeft.setPosition(OutConst.lr_INIT);
-//        outY.setPosition(OutConst.y_INIT);
-//        outLink.setPosition(OutConst.link_INIT);
-//        outClaw.setPosition(OutConst.claw_OPEN);
+        outRight.setPosition(OutConst.lr_INIT);
+        outLeft.setPosition(OutConst.lr_INIT);
+        outY.setPosition(OutConst.y_INIT);
+        outLink.setPosition(OutConst.link_INIT);
+        outClaw.setPosition(OutConst.claw_OPEN);
 //
         ptoRot.setPosition(IntConst.ptoUnlock);
 

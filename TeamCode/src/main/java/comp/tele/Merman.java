@@ -94,7 +94,7 @@ public class Merman extends LinearOpMode {
     public void robotState() {
         switch (state) {
             case INIT: {
-//                servoConfig.setInitPos();
+                servoConfig.setInitPos();
                 intTargetPosition = IntConst.slideRetracted;
                 outTargetPosition = OutConst.slidesDown;
                 fraction = 1;
@@ -141,7 +141,7 @@ public class Merman extends LinearOpMode {
                 }
                 if (intakeTimer.milliseconds() > 600) {
                     servoConfig.intRot.setPosition(IntConst.rot_INIT);
-//                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                     transferTimer.reset();
 //                    state = RobotStates.TRANSFER;
                 }
