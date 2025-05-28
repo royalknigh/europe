@@ -23,13 +23,9 @@ public class Outtake extends OpMode {
 
     private boolean areSlidesDown = true;
 
-
-    public static double oP = 0, oI = 0, oD = 0, oF = 0;
-
-    private PIDFController pidfController;
-    public static double targetPosition = 0;
-
-    public static double iP = 0, iI = 0, iD = 0, iF = 0;
+    private PIDFController outPID;
+    public static double oP = 0.007, oI = 0, oD = 0, oF = 0.1;
+    public static double iP = 0.003, iI = 0, iD = 0, iF = 0;
     private PIDFController intPID;
     public static int intTargetPosition = 0;
 
@@ -44,6 +40,7 @@ public class Outtake extends OpMode {
     public Servo outY;
     public Servo outClaw;
 
+    public Servo ptoRot;
 
     private boolean isIntSlideDown;
 
@@ -53,9 +50,10 @@ public class Outtake extends OpMode {
     public static double intakeClaw = IntConst.claw_OPEN;
 
     public static double outLr = OutConst.lr_INIT;
-    public static double outlink;
-    public static double outy;
-    public static double outclaw;
+    public static double outlink = OutConst.link_INIT;
+    public static double outy = OutConst.y_INIT;
+    public static double outclaw = OutConst.claw_OPEN;
+
 
     @Override
     public void init() {
@@ -72,9 +70,12 @@ public class Outtake extends OpMode {
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
-        outRight.setDirection(Servo.Direction.REVERSE);
+        ptoRot = hardwareMap.get(Servo.class, "ptoRot");
+        
+
 
         updatePIDFController1();
+        updatePIDFController();
 
         // Initialize FTC Dashboard
         dashboard = FtcDashboard.getInstance();
@@ -91,45 +92,39 @@ public class Outtake extends OpMode {
 
     @Override
     public void loop() {
-//        setIntPID();
-//        updatePIDFController();
-
+        updatePIDFController();
         updatePIDFController1();
+        setIntPID();
+        setOutPID();
+
+
 
         setServoPositions();
 
-        pidfController.setTargetPosition(targetPosition);
-        pidfController.updatePosition(motorConfig.frontSlideMotor.getCurrentPosition());
-
-        double powerLeft = pidfController.runPIDF();
-
-
-            motorConfig.frontSlideMotor.setPower(powerLeft);
-            motorConfig.backSlideMotor.setPower(powerLeft);
-
         if (-gamepad1.left_stick_y > 0.1) {
-            targetPosition += 40;
+            outTargetPosition += 40;
         } else if (-gamepad1.left_stick_y < -0.1) {
-            targetPosition -= 40;
+            outTargetPosition -= 40;
         }
-
-        telemetry.addData("velocity", MotorConfig.frontSlideMotor.getVelocity());
-        telemetry.addData("areSlidesDown", areSlidesDown);
-        telemetry.addData("Target Position", targetPosition);
+        telemetry.addData("Target Position", outTargetPosition);
         telemetry.addData("Left Motor Position", motorConfig.frontSlideMotor.getCurrentPosition());
 
-        telemetry.addData("Left Motor Error", motorConfig.frontSlideMotor.getCurrentPosition() - targetPosition);
-        telemetry.addData("Right Motor Error", motorConfig.backSlideMotor.getCurrentPosition() - targetPosition);
+        telemetry.addData("Left Motor Error", motorConfig.frontSlideMotor.getCurrentPosition() - outTargetPosition);
+        telemetry.addData("Right Motor Error", motorConfig.backSlideMotor.getCurrentPosition() - outTargetPosition);
 
         telemetry.addData("Right Motor Power", motorConfig.backSlideMotor.getPower());
         telemetry.addData("Left Motor Power", motorConfig.frontSlideMotor.getPower());
+
+        telemetry.addData("intake Motor position", motorConfig.intakeMotor.getCurrentPosition());
+        telemetry.addData("intake target Motor", motorConfig.intakeMotor.getCurrentPosition());
+        telemetry.addData("intake Motor error", motorConfig.intakeMotor.getCurrentPosition()- intTargetPosition);
 
         telemetry.update();
     }
 
     private void updatePIDFController1() {
         CustomPIDFCoefficients coefficients = new CustomPIDFCoefficients(oP, oI, oD, oF);
-        pidfController = new PIDFController(coefficients);
+        outPID = new PIDFController(coefficients);
     }
 
     public void setServoPositions() {
@@ -144,11 +139,55 @@ public class Outtake extends OpMode {
         intY.setPosition(intakeY);
         intClawRot.setPosition(clawRot);
 
+        ptoRot.setPosition(IntConst.ptoUnlock);
+
+    }
+
+    public static int outTargetPosition = OutConst.slidesDown;
+    public boolean isOutSlideDown;
+    public double outtakePower;
+
+public void setOutPID(){
+    outPID.setTargetPosition(outTargetPosition);
+    outPID.updatePosition(motorConfig.frontSlideMotor.getCurrentPosition());
+
+    double outtakePower = outPID.runPIDF();
+
+    if (Math.abs(motorConfig.frontSlideMotor.getCurrentPosition() - outTargetPosition) < 10) {
+        outtakePower =0;
+    }
+    if (motorConfig.frontSlideMotor.getCurrentPosition() > 10) isOutSlideDown = false;
+
+    if (motorConfig.frontSlideMotor.getCurrentPosition() < 60 && motorConfig.frontSlideMotor.getVelocity() < 0.05 && outTargetPosition == OutConst.slidesDown) {
+        MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+        MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        isOutSlideDown = true;
+    }
+
+    if (outTargetPosition == OutConst.slidesDown && isOutSlideDown) {
+        motorConfig.frontSlideMotor.setPower(0);
+        motorConfig.backSlideMotor.setPower(0);
+    }
+
+    if (outTargetPosition == OutConst.slidesDown && motorConfig.frontSlideMotor.getCurrentPosition() > 10) {
+        motorConfig.frontSlideMotor.setPower(-1);
+        motorConfig.backSlideMotor.setPower(-1);
+
+    } else {
+        motorConfig.frontSlideMotor.setPower(outtakePower);
+        motorConfig.backSlideMotor.setPower(outtakePower);
+    }
+
+    motorConfig.frontSlideMotor.setPower(outtakePower);
+    motorConfig.backSlideMotor.setPower(outtakePower);
     }
 
     public void setIntPID() {
         intPID.setTargetPosition(intTargetPosition);
-        intPID.updatePosition(motorConfig.intakeMotor.getCurrentPosition());
+        intPID.updatePosition((double) (motorConfig.intakeMotor.getCurrentPosition()));
 
         double IntakePower = intPID.runPIDF();
 

@@ -70,7 +70,7 @@ public class ServoConfig {
         intRot.setPosition(IntConst.rot_INIT);
         intY.setPosition(IntConst.y_INIT);
         intClawRot.setPosition(IntConst.clawRot_INIT);
-        intClaw.setPosition(IntConst.claw_CLOSED);
+        intClaw.setPosition(IntConst.claw_OPEN);
 
         outRight.setPosition(OutConst.lr_INIT);
         outLeft.setPosition(OutConst.lr_INIT);

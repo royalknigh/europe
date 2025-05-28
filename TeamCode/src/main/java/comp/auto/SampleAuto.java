@@ -11,6 +11,9 @@ import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.pedropathing.follower.*;
 import com.pedropathing.util.Timer;
 
+import configs.MotorConfig;
+import configs.ServoConfig;
+import consts.IntConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
@@ -20,6 +23,10 @@ public class SampleAuto extends OpMode {
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
     private int pathState;
+
+    public ServoConfig servoConfig;
+    public MotorConfig motorConfig;
+
 
     private Pose startPose = new Pose(7,112, Math.toRadians(-90));
     private Pose scorePose = new Pose(14,30, Math.toRadians(-45));
@@ -65,8 +72,10 @@ public class SampleAuto extends OpMode {
     public void init() {
         pathTimer = new Timer();
         opmodeTimer = new Timer();
-
         opmodeTimer.resetTimer();
+
+        motorConfig = new MotorConfig(hardwareMap);
+        servoConfig = new ServoConfig(hardwareMap);
 
         follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(startPose);
@@ -85,5 +94,10 @@ public class SampleAuto extends OpMode {
 
     @Override
     public void stop() {
+    }
+
+    public void extend(){
+        //TODO : ADD PIDF FOR INTAKE AND OUTTAKE THEN SET POSITIONS
+        servoConfig.setIntakePos(IntConst.rot_GRAB, IntConst.y_GRAB, IntConst.clawRot_INIT, IntConst.claw_OPEN);
     }
 }

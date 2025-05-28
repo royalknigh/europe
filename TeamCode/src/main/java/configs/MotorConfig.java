@@ -60,6 +60,8 @@ public class MotorConfig {
         intakeMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
 
 
+
+
         MotorConfigurationType configFrontSlideMotor = frontSlideMotor.getMotorType().clone();
         configFrontSlideMotor.setAchieveableMaxRPMFraction(1.0);
         frontSlideMotor.setMotorType(configFrontSlideMotor);

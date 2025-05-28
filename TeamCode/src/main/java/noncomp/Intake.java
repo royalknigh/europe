@@ -60,8 +60,6 @@ public class Intake extends LinearOpMode {
         dashboard.setTelemetryTransmissionInterval(25);
         telemetry = dashboard.getTelemetry();
 
-
-
         waitForStart();
 
         while (opModeIsActive()) {

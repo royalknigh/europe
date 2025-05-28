@@ -21,8 +21,8 @@ public class Merman extends LinearOpMode {
     private ElapsedTime runtime = new ElapsedTime();
 
     //outPID and intPID
-    public static double oP = 0, oI = 0, oD = 0, oF = 0;
-    public static double iP = 0.01, iI = 0, iD = 0, iF = 0;
+    public static double oP = 0.007, oI = 0, oD = 0, oF = 0.1;
+    public static double iP = 0.003, iI = 0, iD = 0, iF = 0;
 
     public static int outTargetPosition = OutConst.slidesDown;
     public static int intTargetPosition = OutConst.slidesDown;
@@ -89,16 +89,25 @@ public class Merman extends LinearOpMode {
     public void robotState() {
         switch (state) {
             case INIT: {
-                servoConfig.setInitPos();
                 intTargetPosition = IntConst.slideRetracted;
+                servoConfig.setInitPos();
+                if (motorConfig.intakeMotor.getCurrentPosition() > 20)
+                    motorConfig.intakeMotor.setPower(-1);
+                else if (motorConfig.intakeMotor.getVelocity() < 0.05){
+                    motorConfig.intakeMotor.setPower(0);
+                    motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                    motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+                }
+
                 outTargetPosition = OutConst.slidesDown;
                 fraction = 1;
                 if (gamepad1.a) {
                     state = RobotStates.GRAB;
                     grabTimer.reset();
                 }
-                if (gamepad2.left_trigger > 0){
+                if (gamepad2.left_bumper){
                     servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
+                    servoConfig.intY.setPosition(IntConst.y_TRANSFER);
                     pickupTimer.reset();
                     outClosed = true;                               //gotta work on it and test
                     state = RobotStates.SPECIMEN_PICKUP;
@@ -106,9 +115,12 @@ public class Merman extends LinearOpMode {
                 break;
             }
             case GRAB: {
-                fraction = 4;
-                intTargetPosition=650;
+                fraction = 3;
+                intTargetPosition = IntConst.slideExtended;
+
+                servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_INIT, OutConst.claw_OPEN);
                 servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+
                 if(grabTimer.milliseconds()>400){
                     servoConfig.intY.setPosition(IntConst.y_GRAB);
                     servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
@@ -129,107 +141,109 @@ public class Merman extends LinearOpMode {
             }
             case RETRACT_SAMPLE: {
                 fraction = 1;
-                intTargetPosition = 0;
-                if (intakeTimer.milliseconds() > 300) {
-                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+
+                if(intakeTimer.milliseconds()>50)
                     servoConfig.intY.setPosition(IntConst.y_INIT);
-                }
-                if (intakeTimer.milliseconds() > 600) {
+                if (intakeTimer.milliseconds() > 150) {
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
                     servoConfig.intRot.setPosition(IntConst.rot_INIT);
-                    servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
-                    transferTimer.reset();
-                    if(motorConfig.intakeMotor.getCurrentPosition() < 50)
-                        state = RobotStates.TRANSFER;
                 }
+                if(intakeTimer.milliseconds() > 200){
+                    transferTimer.reset();
+                    intTargetPosition = IntConst.slideRetracted;
+                    servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_PLACE, OutConst.claw_OPEN);
+                }
+
+                if(motorConfig.intakeMotor.getCurrentPosition() < 10)
+                    state = RobotStates.TRANSFER;
                 break;
             }
             case RETRACT_SPECIMEN: {
                 fraction = 1;
                 intTargetPosition = 0;
-                if (intakeTimer.milliseconds() > 300) {
+                if(intakeTimer.milliseconds() >50)
+                    servoConfig.intY.setPosition(IntConst.y_DROP);
+                if (intakeTimer.milliseconds() > 100) {
                     servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
                     servoConfig.intRot.setPosition(IntConst.rot_DROP);
-                    servoConfig.intY.setPosition(IntConst.y_DROP);
                 }
                 if (motorConfig.intakeMotor.getCurrentPosition()<100) {
                     if (gamepad1.right_bumper) {
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
-                        servoConfig.intY.setPosition(IntConst.y_INIT);
-                        servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
                         state = RobotStates.INTERMEDIATE;
                     }
                 }
                 break;
             }
             case TRANSFER: {
-//               TODO: GOTTA RAISE THE SLIDES SO THAT IT CAN PICK IT UP FROM THE TOP
+               outTargetPosition=OutConst.slideTransfer;
 
-//               TODO: outTargetPosition = OutConst.slidesTransfer;
-
-                if(motorConfig.frontSlideMotor.getCurrentPosition()> OutConst.slidesTransfer -40)
-
-                if (transferTimer.milliseconds() > 500 && motorConfig.frontSlideMotor.getCurrentPosition()<10){
-                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
-                    if (transferTimer.milliseconds() > 700)
-                        servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
-                    if (transferTimer.milliseconds() > 800) {
-                        servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.y_SAMPLE, OutConst.link_INIT, OutConst.claw_PRESSED);
-                        state = RobotStates.INTERMEDIATE;
-                    }
-                }
+               if(transferTimer.milliseconds() > 300)
+                   servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+               if(transferTimer.milliseconds() > 500){
+                servoConfig.setOuttakePos(OutConst.lr_SAMPLE,OutConst.y_SAMPLE,OutConst.link_INIT,OutConst.claw_CLOSED);
+                state=RobotStates.INTERMEDIATE;
+               }
+                break;
             }
             case INTERMEDIATE: {
                 if (-gamepad1.left_stick_y > 0.3) {
                     placeTimer.reset();
+                    servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
                     state = RobotStates.SAMPLE_HIGH;
                 }
                 if (-gamepad1.left_stick_y < -0.3) {
                     placeTimer.reset();
+                    servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
                     state = RobotStates.SAMPLE_LOW;
                 }
-                if (gamepad2.left_trigger > 0) {
+                if (gamepad2.left_bumper) {
                     servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
-                    pickupTimer.reset();
                     outClosed = true;
+                    servoConfig.intY.setPosition(IntConst.y_TRANSFER);
                     state = RobotStates.SPECIMEN_PICKUP;
                 }
                 if (gamepad1.a) {
                     state = RobotStates.GRAB;
                     grabTimer.reset();
                 }
+                break;
             }
             case SAMPLE_HIGH: {
                 outTargetPosition = OutConst.slidesSampleHigh;
                 servoConfig.outLink.setPosition(OutConst.link_PLACE);
-                servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
+
                 if (gamepad1.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
-                    if (placeTimer.milliseconds() > 750) state = RobotStates.INIT;
                 }
+                break;
             }
             case SAMPLE_LOW: {
                 outTargetPosition = OutConst.slidesSampleLow;
                 servoConfig.outLink.setPosition(OutConst.link_PLACE);
-                servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
+
                 if (gamepad1.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
-                    if (placeTimer.milliseconds() > 750) state = RobotStates.INIT;
                 }
+                break;
             }
             case SPECIMEN_PICKUP: {
                 if (outClosed) {
-                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
-                    outClosed = false;
-                }
-                if (pickupTimer.milliseconds() > 50) {
-                    servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED);
-                    if (gamepad2.right_trigger > 0) {
-                        servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
-                        outTargetPosition = OutConst.slideSpecimen;
-
-                        // TODO: SEE IF I HAVE TO LOWER THE SLIDES TOO
+                    if(gamepad2.left_trigger>0){
+                        servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                        pickupTimer.reset();
+                        outClosed = false;
                     }
                 }
+                if (pickupTimer.milliseconds() > 100 && !outClosed) {
+                    servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED);
+                    outTargetPosition = OutConst.slideSpecimen;
+                    if (gamepad2.right_trigger > 0) {
+                        servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+                        state = RobotStates.INTERMEDIATE;
+                    }
+                }
+                break;
             }
         }
     }
@@ -247,8 +261,7 @@ public class Merman extends LinearOpMode {
 
         motorConfig.setMotorPowers(frontLeftPower / fraction, backLeftPower / fraction, frontRightPower / fraction, backRightPower / fraction);
 
-        telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.update();
+
     }
 
     public void updatePIDFController() {
@@ -277,7 +290,6 @@ public class Merman extends LinearOpMode {
             MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             isOutSlideDown = true;
         }
-
         if (outTargetPosition == OutConst.slidesDown && isOutSlideDown) {
             motorConfig.frontSlideMotor.setPower(0);
             motorConfig.backSlideMotor.setPower(0);
@@ -291,9 +303,6 @@ public class Merman extends LinearOpMode {
             motorConfig.frontSlideMotor.setPower(outtakePower);
             motorConfig.backSlideMotor.setPower(outtakePower);
         }
-
-        motorConfig.frontSlideMotor.setPower(outtakePower);
-        motorConfig.backSlideMotor.setPower(outtakePower);
     }
 
     public void setIntPID() {
@@ -307,7 +316,7 @@ public class Merman extends LinearOpMode {
 
         if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
 
-        if (motorConfig.intakeMotor.getCurrentPosition() < 10 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
+        if (motorConfig.intakeMotor.getCurrentPosition() < 20 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
             motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
             motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             isIntSlideDown = true;
