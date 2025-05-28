@@ -44,9 +44,6 @@ public class ServoConfig {
         intY = hardwareMap.get(Servo.class, "intY");
         intClawRot = hardwareMap.get(Servo.class, "intClawRot");
         intClaw = hardwareMap.get(Servo.class, "intClaw");
-
-        outRight.setDirection(Servo.Direction.REVERSE);
-
     }
 
     public void setIntakePos(double rot, double y, double clawRot, double claw) {

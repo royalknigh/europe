@@ -74,6 +74,8 @@ public class Merman extends LinearOpMode {
             lowerLegs();
 
             telemetry.addData("state ", state);
+            telemetry.addData("intake motor position", motorConfig.intakeMotor.getCurrentPosition());
+            telemetry.addData("slide motor position", motorConfig.frontSlideMotor.getCurrentPosition());
             telemetry.update();
         }
     }
@@ -91,7 +93,7 @@ public class Merman extends LinearOpMode {
             case INIT: {
                 intTargetPosition = IntConst.slideRetracted;
                 servoConfig.setInitPos();
-                if (motorConfig.intakeMotor.getCurrentPosition() > 20)
+                if (motorConfig.intakeMotor.getCurrentPosition() > 15)
                     motorConfig.intakeMotor.setPower(-1);
                 else if (motorConfig.intakeMotor.getVelocity() < 0.05){
                     motorConfig.intakeMotor.setPower(0);
@@ -117,8 +119,6 @@ public class Merman extends LinearOpMode {
             case GRAB: {
                 fraction = 3;
                 intTargetPosition = IntConst.slideExtended;
-
-                servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_INIT, OutConst.claw_OPEN);
                 servoConfig.intRot.setPosition(IntConst.rot_GRAB);
 
                 if(grabTimer.milliseconds()>400){
@@ -141,6 +141,8 @@ public class Merman extends LinearOpMode {
             }
             case RETRACT_SAMPLE: {
                 fraction = 1;
+                outTargetPosition=OutConst.slideTransfer;
+                servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_INIT, OutConst.claw_OPEN);
 
                 if(intakeTimer.milliseconds()>50)
                     servoConfig.intY.setPosition(IntConst.y_INIT);
@@ -151,17 +153,18 @@ public class Merman extends LinearOpMode {
                 if(intakeTimer.milliseconds() > 200){
                     transferTimer.reset();
                     intTargetPosition = IntConst.slideRetracted;
-                    servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_PLACE, OutConst.claw_OPEN);
                 }
 
-                if(motorConfig.intakeMotor.getCurrentPosition() < 10)
+                if(motorConfig.intakeMotor.getCurrentPosition() < 50){
+                    transferTimer.reset();
                     state = RobotStates.TRANSFER;
+                }
                 break;
             }
             case RETRACT_SPECIMEN: {
                 fraction = 1;
                 intTargetPosition = 0;
-                if(intakeTimer.milliseconds() >50)
+                if(intakeTimer.milliseconds() >0)
                     servoConfig.intY.setPosition(IntConst.y_DROP);
                 if (intakeTimer.milliseconds() > 100) {
                     servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
@@ -170,19 +173,19 @@ public class Merman extends LinearOpMode {
                 if (motorConfig.intakeMotor.getCurrentPosition()<100) {
                     if (gamepad1.right_bumper) {
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                        servoConfig.intY.setPosition(IntConst.y_INIT);
                         state = RobotStates.INTERMEDIATE;
                     }
                 }
                 break;
             }
             case TRANSFER: {
-               outTargetPosition=OutConst.slideTransfer;
-
-               if(transferTimer.milliseconds() > 300)
+               if(transferTimer.milliseconds() > 800)
                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
-               if(transferTimer.milliseconds() > 500){
-                servoConfig.setOuttakePos(OutConst.lr_SAMPLE,OutConst.y_SAMPLE,OutConst.link_INIT,OutConst.claw_CLOSED);
-                state=RobotStates.INTERMEDIATE;
+               if(transferTimer.milliseconds() > 1500){
+                   servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.setOuttakePos(OutConst.lr_SAMPLE,OutConst.y_TRANSFER,OutConst.link_INIT,OutConst.claw_CLOSED);
+                    state=RobotStates.INTERMEDIATE;
                }
                 break;
             }
