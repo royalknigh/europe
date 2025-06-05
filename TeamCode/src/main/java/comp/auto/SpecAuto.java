@@ -1,7 +1,6 @@
 package comp.auto;
 
-
-import com.pedropathing.localization.Pose;
+import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
@@ -13,7 +12,6 @@ import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.pedropathing.follower.*;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 import configs.MotorConfig;
 import configs.ServoConfig;
@@ -22,23 +20,15 @@ import consts.OutConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-@Autonomous(name = "Sample eAuto", group = "Auto")
-public class SampleAutoe extends OpMode {
+@Autonomous(name = "SpecAuto", group = ".Comp")
+public class SpecAuto extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
     private int pathState;
 
-    private Pose startPose = new Pose(7,112, Math.toRadians(-90));
-    private Pose scorePose = new Pose(14,130, Math.toRadians(-45));
-
-    private Pose firstSample = new Pose(20, 121, Math.toRadians(0));
-    private Pose secondSample = new Pose(14, 130, Math.toRadians(5));
-    private Pose thirdSample = new Pose(20, 130, Math.toRadians(25));
-
-    //configs
-    private MotorConfig motorConfig;
-    private ServoConfig servoConfig;
+    public ServoConfig servoConfig;
+    public MotorConfig motorConfig;
 
     private PIDFController outPID, intPID;
 
@@ -50,91 +40,88 @@ public class SampleAutoe extends OpMode {
 
     private boolean isOutSlideDown, isIntSlideDown;
 
-    private PathChain preloadScore, firstScore, secondScore, thirdScore;
+
+    private PathChain preload, secondPreload, scorePickup;
 
     public void buildPaths() {
-        preloadScore = follower.pathBuilder()
-                .addPath(new BezierLine(new Point(startPose), new Point(scorePose)))
-                .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
-                .addParametricCallback(0.9, this::scoreSample)
-                .setPathEndTimeoutConstraint(500)
+        preload = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.startPose), new Point(PoseSpec.scorePose)))
+                .setConstantHeadingInterpolation(0)
 
-                .addPath(new BezierLine(new Point(scorePose), new Point(firstSample)))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), firstSample.getHeading())
-                .addParametricCallback(0.2, this::resetExtend)
-                .setPathEndTimeoutConstraint(500)
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
+
+                .addParametricCallback(0.05, () -> place())
+                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
                 .build();
 
-        firstScore = follower.pathBuilder()
-                .addPath(new BezierLine(new Point(firstSample), new Point(scorePose)))
-                .setLinearHeadingInterpolation(firstSample.getHeading(), scorePose.getHeading())
-                .addParametricCallback(0.9, this::scoreSample)
-                .setPathEndTimeoutConstraint(500)
+                secondPreload = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPose)))
+                .setConstantHeadingInterpolation(0)
 
-                .addPath(new BezierLine(new Point(scorePose), new Point(secondSample)))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), secondSample.getHeading())
-                .addParametricCallback(0.2, this::resetExtend)
-                .setPathEndTimeoutConstraint(500)
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
+
+                .addParametricCallback(0.3, () -> pickup())
+                .build();
+
+        scorePickup = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.pickupPose), new Point(PoseSpec.scorePose)))
+                .setConstantHeadingInterpolation(0)
+                .setZeroPowerAccelerationMultiplier(1)
+                .setPathEndTimeoutConstraint(0)
+                .addParametricCallback(0.3, () -> place())
+
+                .addPath(new BezierCurve(
+                        new Point(PoseSpec.scorePose), new Point(PoseSpec.firstPushControl1),
+                        new Point(PoseSpec.firstPushControl2), new Point(PoseSpec.firstSample)))
+                .setConstantHeadingInterpolation(0)
+                .setZeroPowerAccelerationMultiplier(4)
+                .setPathEndTimeoutConstraint(0)
+                .addParametricCallback(0., () -> pickup())
+
+
+                .addPath(new BezierLine(new Point(PoseSpec.firstSample), new Point(PoseSpec.firstPush)))
+                .setConstantHeadingInterpolation(0)
+                .setPathEndTimeoutConstraint(0)
+
+                .addPath(new BezierCurve(new Point(PoseSpec.firstPush), new Point(PoseSpec.secondSampleControl), new Point(PoseSpec.secondSample)))
+                .setConstantHeadingInterpolation(0)
+                .setPathEndTimeoutConstraint(0)
+
+                .addPath(new BezierLine(new Point(PoseSpec.secondSample),new Point(PoseSpec.secondPush)))
+                .setConstantHeadingInterpolation(0)
+                .setPathEndTimeoutConstraint(0)
+
+                .addPath(new BezierCurve(
+                        new Point(PoseSpec.secondPush), new Point(PoseSpec.thirdSampleControl), new Point(PoseSpec.thirdSample)))
+                .setConstantHeadingInterpolation(0)
+                .setPathEndTimeoutConstraint(0)
+
+                .addPath(new BezierCurve(new Point(PoseSpec.thirdSample),new Point(PoseSpec.thirdPushControl), new Point(PoseSpec.thirdPush)))
+                .setConstantHeadingInterpolation(0)
+                .setPathEndTimeoutConstraint(0)
+
+                //need to start cylcing
                 .build();
     }
-
-    private boolean closedIntake = false;
-
-    public ElapsedTime transferTimer = new ElapsedTime();
-    public ElapsedTime intakeTimer = new ElapsedTime();
 
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.followPath(preloadScore);
+                follower.followPath(preload);
+                follower.setMaxPower(0.4);
                 setPathState(1);
-                intakeTimer.reset();
                 break;
             case 1:
                 if(!follower.isBusy()){
-                    if(!closedIntake) {
-                        intTargetPosition = IntConst.slideExtended;
-                        servoConfig.setIntakePos(IntConst.rot_GRAB,IntConst.y_GRAB,IntConst.clawRot_INIT,IntConst.claw_OPEN);
-                        if(intakeTimer.milliseconds() > 500) {
-                            servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
-                            intakeTimer.reset();
-                            closedIntake = true;
-                        }
-                    }
-                        if (closedIntake) {
-                            outTargetPosition = OutConst.slideTransfer;
-
-                            if (intakeTimer.milliseconds() > 50) servoConfig.intY.setPosition(IntConst.y_INIT);
-                            if (intakeTimer.milliseconds() > 100) {
-                                servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
-                                servoConfig.intRot.setPosition(IntConst.rot_INIT);
-                            }
-                            if (intakeTimer.milliseconds() > 200 && intakeTimer.milliseconds() < 300) {
-                                transferTimer.reset();
-                                intTargetPosition = IntConst.slideRetracted;
-                                servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_INIT, OutConst.claw_OPEN);
-                            }
-
-                            if (transferTimer.milliseconds() > 300)
-                                servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
-                            if (transferTimer.milliseconds() > 500) {
-                                servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
-                            }
-                        }
-
+                    follower.followPath(secondPreload);
+                    follower.setMaxPower(0.7);
                     setPathState(2);
                 }
                 break;
-            case 2:
-                scoreSample();
-                setPathState(3);
-                break;
-            case 3:
-
-                break;
         }
     }
-
 
     public void setPathState(int pState) {
         pathState = pState;
@@ -143,46 +130,46 @@ public class SampleAutoe extends OpMode {
 
     @Override
     public void loop() {
+        updatePIDFController();
+        setIntPID();
+        setOutPID();
 
         follower.update();
         autonomousPathUpdate();
-
-        updatePIDFController();
-
-        setIntPID();
-        setOutPID();
 
         telemetry.addData("path state", pathState);
         telemetry.addData("x", follower.getPose().getX());
         telemetry.addData("y", follower.getPose().getY());
         telemetry.addData("heading", follower.getPose().getHeading());
+        telemetry.addData("T Value", follower.getCurrentTValue());
+        telemetry.addData("Out position", motorConfig.frontSlideMotor.getCurrentPosition());
+
         telemetry.update();
     }
 
     @Override
     public void init() {
-        updatePIDFController();
-
         pathTimer = new Timer();
         opmodeTimer = new Timer();
-
         opmodeTimer.resetTimer();
 
-        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
-        follower.setStartingPose(startPose);
+
 
         motorConfig = new MotorConfig(hardwareMap);
         servoConfig = new ServoConfig(hardwareMap);
 
-        servoConfig.setInitPos();
+
+
+        follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
+        follower.setStartingPose(PoseSpec.startPose);
+        initialise();
+        updatePIDFController();
 
         buildPaths();
     }
 
     @Override
-    public void init_loop() {
-
-    }
+    public void init_loop() {}
 
     @Override
     public void start() {
@@ -192,23 +179,40 @@ public class SampleAutoe extends OpMode {
 
     @Override
     public void stop() {
-
     }
-    
-    public void scoreSample(){
-        outTargetPosition = OutConst.slidesSampleHigh;
-        if(motorConfig.frontSlideMotor.getCurrentPosition()>800){
-            servoConfig.outLeft.setPosition(OutConst.lr_SAMPLE);
-            servoConfig.outRight.setPosition(OutConst.lr_SAMPLE);
-            servoConfig.outY.setPosition(OutConst.y_SAMPLE);
-            servoConfig.outLink.setPosition(OutConst.link_PLACE);
-        }
 
+    public void extend(){
+        //TODO : ADD PIDF FOR INTAKE AND OUTTAKE THEN SET POSITIONS
+        servoConfig.setIntakePos(IntConst.rot_GRAB, IntConst.y_GRAB, IntConst.clawRot_INIT, IntConst.claw_OPEN);
     }
-    
-    public void resetExtend() {
-        outTargetPosition = OutConst.slideTransfer;
-        servoConfig.setOuttakePos(OutConst.lr_TRANSFER, OutConst.y_TRANSFER, OutConst.link_INIT, OutConst.claw_OPEN);
+
+    public void pickup(){
+         servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
+         outTargetPosition = OutConst.slidesDown;
+    }
+
+    public void place(){
+        servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED);
+        outTargetPosition = OutConst.slideSpecimen;
+    }
+
+    public void initialise(){
+        servoConfig.intY.setPosition(IntConst.y_INIT);
+        servoConfig.intRot.setPosition(IntConst.rot_INIT);
+        servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+        servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+
+        servoConfig.outRight.setPosition(OutConst.lr_INIT);
+        servoConfig.outLeft.setPosition(OutConst.lr_INIT);
+
+        servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
+        servoConfig.outLink.setPosition(OutConst.link_INIT);
+        servoConfig.outY.setPosition(OutConst.y_INIT);
+
+
+        servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
+        servoConfig.ptoRight.setPosition(IntConst.ptoLegsUp);
+        servoConfig.ptoLeft.setPosition(IntConst.ptoLegsUp);
     }
 
     public void updatePIDFController() {
