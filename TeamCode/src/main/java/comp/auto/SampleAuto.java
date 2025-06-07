@@ -2,6 +2,7 @@ package comp.auto;
 
 
 import com.pedropathing.localization.Pose;
+import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
@@ -31,16 +32,23 @@ public class SampleAuto extends OpMode {
 
     private Pose startPose = new Pose(7, 112.5, Math.toRadians(270));
 
-    private Pose scorePose = new Pose(12, 125, Math.toRadians(315));
+    private Pose scorePose = new Pose(12, 127, Math.toRadians(315));
 
-    private Pose scorePose1 = new Pose(12, 127, Math.toRadians(315));
+    private Pose scorePose1 = new Pose(12, 127, Math.toRadians(310));
+
+    private Pose scorePose2 = new Pose(12, 129, Math.toRadians(310));
 
 
-    private Pose firstSample = new Pose(12, 125.5, Math.toRadians(2));
+    private Pose firstSample = new Pose(12, 127.1, Math.toRadians(-5));
 
-    private Pose secondSample = new Pose(12, 125.5, Math.toRadians(15));
+    private Pose secondSample = new Pose(12, 127.1, Math.toRadians(12.5));
 
-    private Pose thirdSample = new Pose(12, 124, Math.toRadians(25));
+    private Pose thirdSample = new Pose(14, 127.1, Math.toRadians(27));
+
+    private Pose sub = new Pose(60, 100, Math.toRadians(-75));
+
+    private Pose subControl = new Pose(60, 125, Math.toRadians(-75));
+
 
     //configs
     private MotorConfig motorConfig;
@@ -56,13 +64,12 @@ public class SampleAuto extends OpMode {
 
     private boolean isOutSlideDown, isIntSlideDown;
 
-    private PathChain preloadScore, firstExtend, firstScore,secondExtend, secondScore, thirdScore;
+    private PathChain preloadScore, firstExtend, firstScore,secondExtend, secondScore, thirdExtend, thirdScore, subPath;
 
     public void buildPaths() {
         preloadScore = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(startPose), new Point(scorePose)))
                 .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
-                .addParametricCallback(0.9, () -> drop())
                 .setZeroPowerAccelerationMultiplier(2)
                 .setPathEndTimeoutConstraint(0)
                 .build();
@@ -77,12 +84,8 @@ public class SampleAuto extends OpMode {
         firstScore = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(firstSample), new Point(scorePose1)))
                 .setLinearHeadingInterpolation(firstSample.getHeading(), scorePose1.getHeading())
+                .setZeroPowerAccelerationMultiplier(2)
                 .setPathEndTimeoutConstraint(0)
-
-//                .addPath(new BezierLine(new Point(scorePose), new Point(secondSample)))
-//                .setLinearHeadingInterpolation(scorePose.getHeading(), secondSample.getHeading())
-//                .addParametricCallback(0.2, this::resetExtend)
-//                .setPathEndTimeoutConstraint(500)
                 .build();
 
         secondExtend = follower.pathBuilder()
@@ -93,28 +96,33 @@ public class SampleAuto extends OpMode {
                 .build();
 
         secondScore = follower.pathBuilder()
-                .addPath(new BezierLine(new Point(secondSample), new Point(scorePose)))
-                .setLinearHeadingInterpolation(secondSample.getHeading(), scorePose.getHeading())
-                .addParametricCallback(0.9, this::scoreSample)
-                .setPathEndTimeoutConstraint(500)
+                .addPath(new BezierLine(new Point(secondSample), new Point(scorePose1)))
+                .setLinearHeadingInterpolation(secondSample.getHeading(), scorePose1.getHeading())
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
+                .build();
 
-                .addPath(new BezierLine(new Point(scorePose), new Point(thirdSample)))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), thirdSample.getHeading())
-                .addParametricCallback(0.2, this::resetExtend)
-                .setPathEndTimeoutConstraint(500)
+        thirdExtend = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(scorePose1), new Point(thirdSample)))
+                .setLinearHeadingInterpolation(scorePose1.getHeading(), thirdSample.getHeading())
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
                 .build();
 
         thirdScore = follower.pathBuilder()
-                .addPath(new BezierLine(new Point(thirdSample), new Point(scorePose)))
-                .setLinearHeadingInterpolation(thirdSample.getHeading(), scorePose.getHeading())
-                .addParametricCallback(0.9, this::scoreSample)
-                .setPathEndTimeoutConstraint(500)
-
-                .addPath(new BezierLine(new Point(scorePose), new Point(thirdSample)))
-                .setLinearHeadingInterpolation(scorePose.getHeading(), thirdSample.getHeading())
-                .addParametricCallback(0.2, this::resetExtend)
-                .setPathEndTimeoutConstraint(500)
+                .addPath(new BezierLine(new Point(thirdSample), new Point(scorePose2)))
+                .setLinearHeadingInterpolation(thirdSample.getHeading(), scorePose2.getHeading())
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
                 .build();
+
+        subPath = follower.pathBuilder()
+                .addPath(new BezierCurve(new Point(scorePose2), new Point(subControl), new Point(sub)))
+                .setLinearHeadingInterpolation(scorePose2.getHeading(), sub.getHeading())
+                .setZeroPowerAccelerationMultiplier(2)
+                .setPathEndTimeoutConstraint(0)
+                .build();
+
     }
 
     private boolean closedIntake = false;
@@ -128,21 +136,27 @@ public class SampleAuto extends OpMode {
         switch (pathState) {
             case 0:
                 follower.followPath(preloadScore);
-                follower.setMaxPower(0.6);
                 scoreSample();
-                intakeTimer.reset();
-                resetTimer.reset();
                 setPathState(1);
+                dropped = false;
+                resetTimer.reset();
                 break;
             case 1:
-                if(!follower.isBusy()){
-                    if(dropped) resetExtend();
-                    if(resetTimer.milliseconds()>1900){
-                        outTargetPosition = OutConst.slideTransfer;
-                        follower.followPath(firstExtend);
-                        intakeTimer.reset();
-                        score = false;
-                        setPathState(2);
+                if(!follower.isBusy() ){
+                    if(!dropped && resetTimer.milliseconds()>500 ){
+                        drop();
+                        resetTimer.reset();
+                    }
+                    else{
+                        if(resetTimer.milliseconds()>300) resetExtend();
+                        if(resetTimer.milliseconds()>700) {
+                            outTargetPosition  = OutConst.slideTransfer;
+                            follower.followPath(firstExtend);
+                            score = false;
+                            closedIntake = false;
+                            intakeTimer.reset();
+                            setPathState(2);
+                        }
                     }
                 }
                 break;
@@ -152,27 +166,91 @@ public class SampleAuto extends OpMode {
                     if(score) {
                         scoreSample();
                         follower.followPath(firstScore);
-                        dropped = false;
-                        intakeTimer.reset();
+                        dropped  =false;
                         resetTimer.reset();
                         setPathState(3);
                     }
                 }
                 break;
             case 3:
-                if(!follower.isBusy()){
-                    if(!dropped && follower.getPose().getHeading() <316 && motorConfig.frontSlideMotor.getCurrentPosition()>870){
+                if(!follower.isBusy() ){
+                    if(!dropped && resetTimer.milliseconds()>600 ){
                         drop();
                         resetTimer.reset();
                     }
-//                    if(dropped && resetTimer.milliseconds()>500) resetExtend();
-//                    if(resetTimer.milliseconds()>1900){
-//                        outTargetPosition = OutConst.slideTransfer;
-////                        follower.followPath(secondExtend);
-//                        intakeTimer.reset();
-//                        score = false;
-//                        setPathState(4);
-//                    }
+                    else{
+                        if(resetTimer.milliseconds()>700) resetExtend();
+                        if(resetTimer.milliseconds()>900) {
+                            outTargetPosition  = OutConst.slideTransfer;
+                            follower.followPath(secondExtend);
+                            score = false;
+                            closedIntake = false;
+                            intakeTimer.reset();
+                            setPathState(4);
+                        }
+                    }
+                }
+                break;
+            case 4:
+                if(!follower.isBusy()){
+                    grab();
+                    if(score) {
+                        scoreSample();
+                        follower.followPath(secondScore);
+                        dropped  =false;
+                        resetTimer.reset();
+                        setPathState(5);
+                    }
+                }
+                break;
+            case 5:
+                if(!follower.isBusy() ){
+                    if(!dropped && resetTimer.milliseconds()>600 ){
+                        drop();
+                        resetTimer.reset();
+                    }
+                    else{
+                        if(resetTimer.milliseconds()>700) resetExtend();
+                        if(resetTimer.milliseconds()>900) {
+                            outTargetPosition  = OutConst.slideTransfer;
+                            follower.followPath(thirdExtend);
+                            score = false;
+                            closedIntake = false;
+                            intakeTimer.reset();
+                            setPathState(6);
+                        }
+                    }
+                }
+                break;
+            case 6:
+                if(!follower.isBusy()){
+                    grab();
+                    if(score) {
+                        scoreSample();
+                        follower.followPath(thirdScore);
+                        dropped  =false;
+                        resetTimer.reset();
+                        setPathState(7);
+                    }
+                }
+                break;
+            case 7:
+                if(!follower.isBusy() ){
+                    if(!dropped && resetTimer.milliseconds()>600 ){
+                        drop();
+                        resetTimer.reset();
+                    }
+                    else{
+                        if(resetTimer.milliseconds()>700) resetExtend();
+                        if(resetTimer.milliseconds()>900) {
+                            outTargetPosition  = OutConst.slideTransfer;
+
+                            score = false;
+                            closedIntake = false;
+                            intakeTimer.reset();
+                            setPathState(8);
+                        }
+                    }
                 }
                 break;
             /*case 1:
@@ -273,7 +351,7 @@ public class SampleAuto extends OpMode {
             servoConfig.outLeft.setPosition(OutConst.lr_SAMPLE);
             servoConfig.outRight.setPosition(OutConst.lr_SAMPLE);
             servoConfig.outY.setPosition(OutConst.y_SAMPLE);
-            servoConfig.outLink.setPosition(OutConst.link_PLACE);
+            servoConfig.outLink.setPosition(OutConst.link_INIT);
 
     }
 
@@ -284,21 +362,19 @@ public class SampleAuto extends OpMode {
     public void grab() {
         if (!closedIntake) {
             intTargetPosition = IntConst.slideExtended;
-            servoConfig.intRot.setPosition(IntConst.y_GRAB);
+            servoConfig.intRot.setPosition(IntConst.rot_GRAB);
             servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
             servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
 
-            if(intakeTimer.milliseconds()>1000)
+            if(intakeTimer.milliseconds()>750)
                 servoConfig.intY.setPosition(IntConst.y_GRAB);
-            if (intakeTimer.milliseconds() > 2000) {
+            if (intakeTimer.milliseconds() > 1250) {
                 servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                 intakeTimer.reset();
                 closedIntake = true;
             }
         }
         if (closedIntake) {
-            // outTargetPosition = OutConst.slideTransfer;
-
             if (intakeTimer.milliseconds() > 50)
                 servoConfig.intY.setPosition(IntConst.y_TRANSFER);
             if (intakeTimer.milliseconds() > 100) {

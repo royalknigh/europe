@@ -12,8 +12,8 @@ public class OutConst {
     public static final double link_INIT = 0.8;
     public static final double link_PLACE = 0.1;
 
-    public static final double y_INIT =0;
-    public static final double y_SAMPLE =0.3;
+    public static final double y_INIT =0.3;
+    public static final double y_SAMPLE =0.35;
     public static final double y_PICK = 0.3 ;
     public static final double y_SPEC = 0.4 ;
     public static final double y_TRANSFER = 0.45;    //0.65
@@ -27,7 +27,7 @@ public class OutConst {
     public static final int slidesSampleHigh = 900;
     public static final int slidesSampleLow = 400;
     public static final int slideSpecimen = 500;
-    public static final int slideTransfer = 310;
+    public static final int slideTransfer = 320;
     public static final int slideIntermediate = 150;
 
 
