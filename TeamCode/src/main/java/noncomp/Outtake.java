@@ -24,8 +24,8 @@ public class Outtake extends OpMode {
     private boolean areSlidesDown = true;
 
     private PIDFController outPID;
-    public static double oP = 0.007, oI = 0, oD = 0, oF = 0.1;
-    public static double iP = 0.003, iI = 0, iD = 0, iF = 0;
+    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.07;
+    public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
     private PIDFController intPID;
     public static int intTargetPosition = 0;
 
@@ -41,6 +41,8 @@ public class Outtake extends OpMode {
     public Servo outClaw;
 
     public Servo ptoRot;
+    public Servo ptoLeft;
+    public Servo ptoRight;
 
     private boolean isIntSlideDown;
 
@@ -53,6 +55,9 @@ public class Outtake extends OpMode {
     public static double outlink = OutConst.link_INIT;
     public static double outy = OutConst.y_INIT;
     public static double outclaw = OutConst.claw_OPEN;
+
+    public static double ptol = IntConst.ptoLegsUp;
+    public static double ptor = IntConst.ptoLegsUp;
 
 
     @Override
@@ -71,6 +76,8 @@ public class Outtake extends OpMode {
         intClaw = hardwareMap.get(Servo.class, "intClaw");
 
         ptoRot = hardwareMap.get(Servo.class, "ptoRot");
+        ptoLeft = hardwareMap.get(Servo.class, "ptoLeft");
+        ptoRight = hardwareMap.get(Servo.class, "ptoRight");
         
 
 
@@ -140,6 +147,8 @@ public class Outtake extends OpMode {
         intClawRot.setPosition(clawRot);
 
         ptoRot.setPosition(IntConst.ptoUnlock);
+        ptoLeft.setPosition(IntConst.ptoLegsUp);
+        ptoRight.setPosition(IntConst.ptoLegsUp);
 
     }
 

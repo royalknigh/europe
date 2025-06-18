@@ -32,8 +32,8 @@ public class SpecAuto extends OpMode {
 
     private PIDFController outPID, intPID;
 
-    public static double oP = 0.007, oI = 0, oD = 0, oF = 0.1;
-    public static double iP = 0.01, iI = 0, iD = 0, iF = 0;
+    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.007;
+    public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
 
     public double outTargetPosition = OutConst.slidesDown;
     public double intTargetPosition = IntConst.slideRetracted;

@@ -32,18 +32,18 @@ public class SampleAuto extends OpMode {
 
     private Pose startPose = new Pose(7, 112.5, Math.toRadians(270));
 
-    private Pose scorePose = new Pose(12, 127, Math.toRadians(315));
+    private Pose scorePose = new Pose(12, 127, Math.toRadians(325));
 
-    private Pose scorePose1 = new Pose(12, 127, Math.toRadians(310));
+    private Pose scorePose1 = new Pose(12, 128, Math.toRadians(310));
 
-    private Pose scorePose2 = new Pose(12, 129, Math.toRadians(310));
+    private Pose scorePose2 = new Pose(12, 129, Math.toRadians(330));
 
 
-    private Pose firstSample = new Pose(12, 127.1, Math.toRadians(-5));
+    private Pose firstSample = new Pose(12, 127.1, Math.toRadians(-6));
 
-    private Pose secondSample = new Pose(12, 127.1, Math.toRadians(12.5));
+    private Pose secondSample = new Pose(12, 127.1, Math.toRadians(12));
 
-    private Pose thirdSample = new Pose(14, 127.1, Math.toRadians(27));
+    private Pose thirdSample = new Pose(15, 132, Math.toRadians(20));
 
     private Pose sub = new Pose(60, 100, Math.toRadians(-75));
 
@@ -56,8 +56,8 @@ public class SampleAuto extends OpMode {
 
     private PIDFController outPID, intPID;
 
-    public static double oP = 0.007, oI = 0, oD = 0, oF = 0.007;
-    public static double iP = 0.03, iI = 0, iD = 0, iF = 0;
+    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.007;
+    public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
 
     public double outTargetPosition = OutConst.slidesDown;
     public double intTargetPosition = IntConst.slideRetracted;
@@ -127,29 +127,38 @@ public class SampleAuto extends OpMode {
 
     private boolean closedIntake = false;
     private boolean dropped= false;
+    private boolean score = false;
+
 
     //  public ElapsedTime transferTimer = new ElapsedTime();
     public ElapsedTime intakeTimer = new ElapsedTime();
     public ElapsedTime resetTimer = new ElapsedTime();
 
+    public int check = 500;
+
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
                 follower.followPath(preloadScore);
+                outTargetPosition = OutConst.slidesSampleHigh;
                 scoreSample();
+                servoConfig.outY.setPosition(OutConst.y_PICK);
                 setPathState(1);
                 dropped = false;
                 resetTimer.reset();
+                follower.setMaxPower(0.7);
                 break;
             case 1:
-                if(!follower.isBusy() ){
-                    if(!dropped && resetTimer.milliseconds()>500 ){
-                        drop();
-                        resetTimer.reset();
+                if(!follower.isBusy()){
+                    if(!dropped) {
+                        if(resetTimer.milliseconds() > 500){
+                            drop();
+                            resetTimer.reset();
+                        }
                     }
                     else{
-                        if(resetTimer.milliseconds()>300) resetExtend();
-                        if(resetTimer.milliseconds()>700) {
+                        if(resetTimer.milliseconds()>500) resetExtend();
+                        if(resetTimer.milliseconds()>800) {
                             outTargetPosition  = OutConst.slideTransfer;
                             follower.followPath(firstExtend);
                             score = false;
@@ -162,7 +171,8 @@ public class SampleAuto extends OpMode {
                 break;
             case 2:
                 if(!follower.isBusy()){
-                    grab();
+                    if(!score)
+                        grab();
                     if(score) {
                         scoreSample();
                         follower.followPath(firstScore);
@@ -174,13 +184,13 @@ public class SampleAuto extends OpMode {
                 break;
             case 3:
                 if(!follower.isBusy() ){
-                    if(!dropped && resetTimer.milliseconds()>600 ){
+                    if(!dropped && resetTimer.milliseconds()>1000 ){
                         drop();
                         resetTimer.reset();
                     }
-                    else{
-                        if(resetTimer.milliseconds()>700) resetExtend();
-                        if(resetTimer.milliseconds()>900) {
+                    if(dropped){
+                        if(resetTimer.milliseconds()>check) resetExtend();
+                        if(resetTimer.milliseconds()>check +400) {
                             outTargetPosition  = OutConst.slideTransfer;
                             follower.followPath(secondExtend);
                             score = false;
@@ -193,7 +203,8 @@ public class SampleAuto extends OpMode {
                 break;
             case 4:
                 if(!follower.isBusy()){
-                    grab();
+                    if(!score)
+                        grab();
                     if(score) {
                         scoreSample();
                         follower.followPath(secondScore);
@@ -205,13 +216,13 @@ public class SampleAuto extends OpMode {
                 break;
             case 5:
                 if(!follower.isBusy() ){
-                    if(!dropped && resetTimer.milliseconds()>600 ){
+                    if(!dropped && resetTimer.milliseconds()>1000 ){
                         drop();
                         resetTimer.reset();
                     }
-                    else{
-                        if(resetTimer.milliseconds()>700) resetExtend();
-                        if(resetTimer.milliseconds()>900) {
+                    if(dropped){
+                        if(resetTimer.milliseconds()>check) resetExtend();
+                        if(resetTimer.milliseconds()>check +400) {
                             outTargetPosition  = OutConst.slideTransfer;
                             follower.followPath(thirdExtend);
                             score = false;
@@ -224,7 +235,8 @@ public class SampleAuto extends OpMode {
                 break;
             case 6:
                 if(!follower.isBusy()){
-                    grab();
+                    if(!score)
+                        grab();
                     if(score) {
                         scoreSample();
                         follower.followPath(thirdScore);
@@ -236,15 +248,14 @@ public class SampleAuto extends OpMode {
                 break;
             case 7:
                 if(!follower.isBusy() ){
-                    if(!dropped && resetTimer.milliseconds()>600 ){
+                    if(!dropped && resetTimer.milliseconds()>1200 ){
                         drop();
                         resetTimer.reset();
                     }
-                    else{
-                        if(resetTimer.milliseconds()>700) resetExtend();
-                        if(resetTimer.milliseconds()>900) {
+                    if(dropped){
+                        if(resetTimer.milliseconds()>check) resetExtend();
+                        if(resetTimer.milliseconds()>check +400) {
                             outTargetPosition  = OutConst.slideTransfer;
-
                             score = false;
                             closedIntake = false;
                             intakeTimer.reset();
@@ -300,7 +311,7 @@ public class SampleAuto extends OpMode {
         telemetry.addData("heading", Math.toDegrees(follower.getPose().getHeading()));
         telemetry.addData("intake motor position", motorConfig.intakeMotor.getCurrentPosition());
         telemetry.addData("slide motor position", motorConfig.frontSlideMotor.getCurrentPosition());
-        telemetry.addData("dropped", resetTimer);
+        telemetry.addData("reset", resetTimer);
         telemetry.update();
     }
 
@@ -347,11 +358,10 @@ public class SampleAuto extends OpMode {
 
     public void scoreSample() {
         outTargetPosition = OutConst.slidesSampleHigh;
-
-            servoConfig.outLeft.setPosition(OutConst.lr_SAMPLE);
-            servoConfig.outRight.setPosition(OutConst.lr_SAMPLE);
+            servoConfig.outLeft.setPosition(OutConst.lr_SAMPLE_AUTO);
+            servoConfig.outRight.setPosition(OutConst.lr_SAMPLE_AUTO);
             servoConfig.outY.setPosition(OutConst.y_SAMPLE);
-            servoConfig.outLink.setPosition(OutConst.link_INIT);
+            servoConfig.outLink.setPosition(OutConst.link_PLACE);
 
     }
 
@@ -389,11 +399,12 @@ public class SampleAuto extends OpMode {
                 servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
             if (intakeTimer.milliseconds() > 1200) {
                 servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                servoConfig.intY.setPosition(IntConst.y_INIT);
                 score = true;
             }
         }
     }
-    public boolean score = false;
+
 
     public void updatePIDFController() {
         CustomPIDFCoefficients outCoefficients = new CustomPIDFCoefficients(oP, oI, oD, oF);
@@ -460,7 +471,7 @@ public class SampleAuto extends OpMode {
             motorConfig.intakeMotor.setPower(0);
 
         if (intTargetPosition == IntConst.slideRetracted && motorConfig.intakeMotor.getCurrentPosition() > 10)
-            motorConfig.intakeMotor.setPower(-1);
+            motorConfig.intakeMotor.setPower(-0.8);
 
         else motorConfig.intakeMotor.setPower(intakePower);
 

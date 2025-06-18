@@ -1,11 +1,8 @@
 package comp.tele;
 
-import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad2;
-
 import com.pedropathing.pathgen.MathFunctions;
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -16,14 +13,14 @@ import configs.ServoConfig;
 import consts.IntConst;
 import consts.OutConst;
 
-@TeleOp(name = "\uD83E\uDDDC Merman", group = "TeleOp")
-public class Merman extends LinearOpMode {
+@TeleOp(name = "\uD83E\uDDDC Merman Solo", group = "TeleOp")
+public class MermanSolo extends LinearOpMode {
 
     private ElapsedTime runtime = new ElapsedTime();
 
     //outPID and intPID
     public static double oP = 0.008, oI = 0, oD = 0, oF = 0.007;
-    public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
+    public static double iP = 0.003, iI = 0, iD = 0, iF = 0;
 
     public static int outTargetPosition = OutConst.slidesDown;
     public static int intTargetPosition = OutConst.slidesDown;
@@ -32,6 +29,17 @@ public class Merman extends LinearOpMode {
 
     private int fraction;
     private boolean isOutSlideDown, isIntSlideDown;
+
+    public ElapsedTime initTimer = new ElapsedTime();
+    public ElapsedTime intakeTimer = new ElapsedTime();
+    public ElapsedTime transferTimer = new ElapsedTime();
+    public ElapsedTime placeTimer = new ElapsedTime();
+    public ElapsedTime pickupTimer = new ElapsedTime();
+    public ElapsedTime grabTimer = new ElapsedTime();
+
+    private boolean outClosed = false;
+    private boolean hang = false;
+    private boolean slides = false;
 
     //configs
     private MotorConfig motorConfig;
@@ -48,7 +56,7 @@ public class Merman extends LinearOpMode {
         SAMPLE_LOW,
         SPECIMEN_PICKUP,
         PICKUP,
-        HANG, SPECIMEN_PLACE
+        HANG, RETRY, SPECIMEN_PLACE
     }
 
     private RobotStates state = RobotStates.INIT;
@@ -89,18 +97,6 @@ public class Merman extends LinearOpMode {
         }
     }
 
-    public ElapsedTime initTimer = new ElapsedTime();
-    public ElapsedTime intakeTimer = new ElapsedTime();
-    public ElapsedTime transferTimer = new ElapsedTime();
-    public ElapsedTime placeTimer = new ElapsedTime();
-    public ElapsedTime pickupTimer = new ElapsedTime();
-    public ElapsedTime grabTimer = new ElapsedTime();
-
-    private boolean outClosed = false;
-    private boolean hang = false;
-    private boolean slides = false;
-
-
     public double angle = IntConst.clawRot_INIT;
 
     public void robotState() {
@@ -120,7 +116,7 @@ public class Merman extends LinearOpMode {
                 if(initTimer.milliseconds()>500)
                     outTargetPosition = OutConst.slidesDown;
                 fraction = 1;
-                if (gamepad1.a) {
+                if (gamepad2.a) {
                     state = RobotStates.GRAB;
                     angle = IntConst.clawRot_INIT;
                     grabTimer.reset();
@@ -130,7 +126,7 @@ public class Merman extends LinearOpMode {
                     servoConfig.intY.setPosition(IntConst.y_INIT);
                     outTargetPosition = OutConst.slidesDown;
                     pickupTimer.reset();
-                    outClosed = true;                               //gotta work on it and test
+                    outClosed = true;
                     state = RobotStates.SPECIMEN_PICKUP;
                 }
                 break;
@@ -147,17 +143,15 @@ public class Merman extends LinearOpMode {
                     servoConfig.intY.setPosition(IntConst.y_HOVER);
                     servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                 }
-                if(gamepad1.left_stick_x<-0.1)
-                    angle-= 0.05;
-                if(gamepad1.left_stick_x>0.1)
-                    angle+= 0.05;
-                if (gamepad1.right_trigger > 0 && intakeTimer.milliseconds()>200) {
+                if(-gamepad2.right_stick_y<-0.5)
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
+                if(-gamepad2.right_stick_y>0.5)
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
+                if (gamepad2.right_trigger > 0 && intakeTimer.milliseconds()>200) {
                     intakeTimer.reset();
                     servoConfig.intY.setPosition(IntConst.y_GRAB);
                     state = RobotStates.PICKUP;
                 }
-                servoConfig.intClawRot.setPosition(MathFunctions.clamp(angle, 0, 1));
-
                 break;
             }
             case PICKUP:{
@@ -165,28 +159,26 @@ public class Merman extends LinearOpMode {
                     servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                 if(intakeTimer.milliseconds()>100)
                     servoConfig.intY.setPosition(IntConst.y_HOVER);
-                if(gamepad1.right_bumper) {
-                    intakeTimer.reset();
-                    state= RobotStates.RETRACT_SAMPLE;
-                }
                 if(intakeTimer.milliseconds()>200){
-                    if(gamepad1.right_trigger>0){
+                    if(gamepad2.right_trigger>0){
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                         intakeTimer.reset();
                         state = RobotStates.GRAB;
                     }
                 }
-                if(gamepad1.left_bumper){
+                if(gamepad2.right_bumper) {
+                    intakeTimer.reset();
+                    state= RobotStates.RETRACT_SAMPLE;
+                }
+                if(gamepad2.left_trigger>0){
                     intakeTimer.reset();
                     state = RobotStates.RETRACT_SPECIMEN;
                 }
 
-                if(gamepad1.left_stick_x<-0.1)
-                    angle-= 0.05;
-                if(gamepad1.left_stick_x>0.1)
-                    angle+= 0.05;
-                servoConfig.intClawRot.setPosition(MathFunctions.clamp(angle, 0, 1));
-
+                if(-gamepad2.right_stick_y<-0.5)
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
+                if(-gamepad2.right_stick_y>0.5)
+                    servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
 
                 break;
             }
@@ -208,7 +200,7 @@ public class Merman extends LinearOpMode {
                     transferTimer.reset();
                     state = RobotStates.TRANSFER;
                 }
-                if (gamepad1.a) {
+                if (gamepad2.a) {
                     state = RobotStates.GRAB;
                     angle = IntConst.clawRot_INIT;
                     grabTimer.reset();
@@ -225,7 +217,7 @@ public class Merman extends LinearOpMode {
                     servoConfig.intRot.setPosition(IntConst.rot_DROP);
                 }
                 if (motorConfig.intakeMotor.getCurrentPosition() < 100) {
-                    if (gamepad1.left_bumper) {
+                    if (gamepad2.left_trigger>0) {
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                         servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
                         servoConfig.intY.setPosition(IntConst.y_TRANSFER);
@@ -255,12 +247,12 @@ public class Merman extends LinearOpMode {
                 break;
             }
             case INTERMEDIATE: {
-                if (-gamepad1.left_stick_y > 0.3) {
+                if (gamepad2.right_trigger>0) {
                     placeTimer.reset();
 //                    servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
                     state = RobotStates.SAMPLE_HIGH;
                 }
-                if (-gamepad1.left_stick_y < -0.3) {
+                if (gamepad2.right_bumper) {
                     placeTimer.reset();
 //                    servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
                     state = RobotStates.SAMPLE_LOW;
@@ -274,7 +266,7 @@ public class Merman extends LinearOpMode {
                     pickupTimer.reset();
                 }
 
-                if (gamepad1.a) {
+                if (gamepad2.a) {
                     state = RobotStates.GRAB;
                     angle = IntConst.clawRot_INIT;
                     grabTimer.reset();
@@ -287,7 +279,7 @@ public class Merman extends LinearOpMode {
                 servoConfig.outLink.setPosition(OutConst.link_PLACE);
                 if(motorConfig.frontSlideMotor.getCurrentPosition()>800) servoConfig.outClaw.setPosition(OutConst.claw_CLOSED);
 
-                if (gamepad1.left_trigger > 0) {
+                if (gamepad2.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                     state = RobotStates.INTERMEDIATE;
                 }
@@ -298,7 +290,7 @@ public class Merman extends LinearOpMode {
                 outTargetPosition = OutConst.slidesSampleLow;
                 servoConfig.outLink.setPosition(OutConst.link_PLACE);
 
-                if (gamepad1.left_trigger > 0) {
+                if (gamepad2.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                     state = RobotStates.INTERMEDIATE;
 
@@ -336,15 +328,20 @@ public class Merman extends LinearOpMode {
             case HANG:
                 if(gamepad2.triangle){
                     outTargetPosition = OutConst.slidesSampleLow;
+                    servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
                     servoConfig.ptoLeft.setPosition(IntConst.ptoLegsDown);
                     servoConfig.ptoRight.setPosition(IntConst.ptoLegsDown);
+                    slides = false;
+                    pull = false;
                 }
                 if(gamepad2.a){
-                    slides = false;
+                    slides = true;
+                    pull = true;
+                }
+                if(pull){
                     servoConfig.ptoRot.setPosition(IntConst.ptoLock);
-
-                    motorConfig.frontSlideMotor.setPower(-0.532);
-                    motorConfig.backSlideMotor.setPower(-0.532);
+                    motorConfig.frontSlideMotor.setMotorDisable();
+                    motorConfig.backSlideMotor.setMotorDisable();
 
                     motorConfig.backLeftMotor.setPower(1);
                     motorConfig.backRightMotor.setPower(1);
@@ -352,6 +349,8 @@ public class Merman extends LinearOpMode {
                 break;
         }
     }
+
+    private boolean pull = false;
 
     public void movement() {
         double y = -gamepad2.left_stick_y;
@@ -401,8 +400,8 @@ public class Merman extends LinearOpMode {
         }
 
         if (outTargetPosition == OutConst.slidesDown && motorConfig.frontSlideMotor.getCurrentPosition() > 10) {
-            motorConfig.frontSlideMotor.setPower(-1);
-            motorConfig.backSlideMotor.setPower(-1);
+            motorConfig.frontSlideMotor.setPower(-0.9);
+            motorConfig.backSlideMotor.setPower(-0.9 );
 
         } else {
             motorConfig.frontSlideMotor.setPower(outtakePower);
@@ -440,6 +439,9 @@ public class Merman extends LinearOpMode {
     public void panicButton() {
         if (gamepad2.dpad_down || gamepad1.dpad_down){
             initTimer.reset();
+            servoConfig.ptoRight.setPosition(IntConst.ptoLegsUp);
+            servoConfig.ptoLeft.setPosition(IntConst.ptoLegsUp);
+            servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
             state = RobotStates.INIT;
         }
 
