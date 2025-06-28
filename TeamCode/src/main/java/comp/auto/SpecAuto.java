@@ -7,6 +7,7 @@ import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.pedropathing.follower.*;
@@ -22,6 +23,7 @@ import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
 @Autonomous(name = "SpecAuto", group = ".Comp")
+@Disabled
 public class SpecAuto extends OpMode {
 
     private Follower follower;
@@ -48,11 +50,9 @@ public class SpecAuto extends OpMode {
         preload = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(PoseSpec.startPose), new Point(PoseSpec.scorePose)))
                 .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(3)
-                .setPathEndTimeoutConstraint(0)
 
-                .addParametricCallback(0, () -> place())
-                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
+//                .addParametricCallback(0, () -> place())
+//                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
                 .build();
 
         secondPreload = follower.pathBuilder()
@@ -69,7 +69,7 @@ public class SpecAuto extends OpMode {
         scorePickup = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(PoseSpec.pickupPose), new Point(PoseSpec.scorePose2)))
                 .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(2)
+                .setZeroPowerAccelerationMultiplier(3)
                 .setPathEndTimeoutConstraint(0)
                 .addParametricCallback(0.1, () -> place())
 
@@ -77,7 +77,7 @@ public class SpecAuto extends OpMode {
                         new Point(PoseSpec.scorePose2), new Point(PoseSpec.firstPushControl1),
                         new Point(PoseSpec.firstPushControl2), new Point(PoseSpec.firstSample)))
                 .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(4)
+                .setZeroPowerAccelerationMultiplier(3)
                 .setPathEndTimeoutConstraint(0)
                 .addParametricCallback(0., () -> pickup())
 

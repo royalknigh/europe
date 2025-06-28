@@ -18,6 +18,8 @@ public class IntConst {
     public static final double y_GRAB = 0.05;
     public static final double y_DROP = 0.4;
     public static final double y_TRANSFER = 0.94;
+    public static final double y_PERPENDICULAR = 0.78;
+    public static final double y_PARALLEL = 0.22;
     public static final double y_AUTO = 0.13;
 
     public static final double clawRot_INIT = 0.64;

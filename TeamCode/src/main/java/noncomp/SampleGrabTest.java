@@ -25,14 +25,14 @@ public class SampleGrabTest extends LinearOpMode {
     MotorConfig motorConfig;
 
     private static final double CAMERA_HEIGHT_IN = 8; // inches
-    private static final double CAMERA_TILT_DEG = 41;  // degrees
+    private static double CAMERA_TILT_DEG = 45;  // degrees
     private static final double TURRET_LENGTH = 5.5;
-    private static final double MAX_SLIDER_INCHES = 19.0;
+    private static final double MAX_SLIDER_INCHES = 17.71;
     private static final int MAX_SLIDER_TICKS = 650;
     private static final double SERVO_MIN = 0.1;
     private static final double SERVO_MAX = 0.45;
-    private static final double MAX_XOFFSET = 2.5;
-    private static final double MIN_XOFFSET = -2.5;
+    private static final double MAX_XOFFSET = 3.6;
+    private static final double MIN_XOFFSET = -3.6;
     private static final double TICKS_PER_INCH = MAX_SLIDER_TICKS / MAX_SLIDER_INCHES;
     private double sliderTargetInches = 0;
     private static int selectMode = 0;
@@ -126,13 +126,12 @@ public class SampleGrabTest extends LinearOpMode {
 
             double txDeg = sampleTarget.getTargetXDegrees();
             double tyDeg = sampleTarget.getTargetYDegrees();
-
             double totalVertRad = Math.toRadians(CAMERA_TILT_DEG + tyDeg);
             double txRad = Math.toRadians(txDeg);
 
             double yInches = CAMERA_HEIGHT_IN * Math.tan(totalVertRad);
             double xInches = yInches * Math.tan(txRad);
-            yInches += 3.7
+//            yInches += 2
             ;
 //            if(yInches>16)
 //                yInches += 0.5;
@@ -176,6 +175,7 @@ public class SampleGrabTest extends LinearOpMode {
             telemetry.addData("X Distance (in)", "%.2f", xInches);
             telemetry.addData("Detected Class", "yellow");
             telemetry.addData("isHorizontal", horizontal);
+            telemetry.addData("angle", CAMERA_TILT_DEG);
             telemetry.addData("Grab timer ", grabTimerLL.milliseconds());
         } else {
             telemetry.addLine("No valid target detected");

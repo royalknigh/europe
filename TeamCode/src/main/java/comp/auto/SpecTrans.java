@@ -2,6 +2,7 @@ package comp.auto;
 
 import com.google.gson.annotations.JsonAdapter;
 import com.pedropathing.follower.Follower;
+import com.pedropathing.localization.Pose;
 import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
@@ -26,8 +27,8 @@ import consts.OutConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-@Autonomous(name = "SpecAutoRework", group = ".Comp")
-public class SpecAutoRework extends OpMode {
+@Autonomous(name = "SpecTrans", group = ".Comp")
+public class SpecTrans extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -45,14 +46,14 @@ public class SpecAutoRework extends OpMode {
     public double intTargetPosition = IntConst.slideRetracted;
 
     private static final double CAMERA_HEIGHT_IN = 8; // inches
-    private static final double CAMERA_TILT_DEG = 42.5;  // degrees
+    private static final double CAMERA_TILT_DEG = 41;  // degrees
     private static final double TURRET_LENGTH = 5.5;
     private static final double MAX_SLIDER_INCHES = 19.0;
     private static final int MAX_SLIDER_TICKS = 650;
     private static final double SERVO_MIN = 0.1;
     private static final double SERVO_MAX = 0.45;
-    private static final double MAX_XOFFSET = 2.5;//4.4
-    private static final double MIN_XOFFSET = -2.5;
+    private static final double MAX_XOFFSET = 3.6;//4.4
+    private static final double MIN_XOFFSET = -3.6;
     private static final double TICKS_PER_INCH = MAX_SLIDER_TICKS / MAX_SLIDER_INCHES;
     private double sliderTargetInches = 0;
     private boolean pressed = false;
@@ -63,6 +64,7 @@ public class SpecAutoRework extends OpMode {
     private boolean leftPressed = false;
     private boolean readyToGrab = false;
     private boolean score = false;
+    private boolean grabbed = false;
 
     private ElapsedTime searchTimer = new ElapsedTime();
     private ElapsedTime grabTimerLL = new ElapsedTime();
@@ -70,7 +72,10 @@ public class SpecAutoRework extends OpMode {
     private boolean isOutSlideDown, isIntSlideDown;
 
     private Limelight3A limelight;
-    private PathChain preload, secondPreload, scorePickup;
+    private PathChain preload, secondPreload, scorePickup, thirdSamp;
+    private Pose firstSample = new Pose(22, 18, 0);
+    private Pose secondSample = new Pose(22, 10, 0);
+    private Pose firstPick= new Pose(10, 25, 0);
 
     public void buildPaths() {
         preload = follower.pathBuilder()
@@ -79,6 +84,8 @@ public class SpecAutoRework extends OpMode {
                 .setZeroPowerAccelerationMultiplier(3.0)
 //                .addParametricCallback(0, () -> follower.setMaxPower(0.8))
                 .addParametricCallback(0.6, () -> follower.setMaxPower(0.5))
+                .addParametricCallback(0, () -> place())
+                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
 //                .addParametricCallback(0.8, () -> follower.setMaxPower(0.2))
 
 //                .setPathEndTimeoutConstraint(0)
@@ -87,8 +94,12 @@ public class SpecAutoRework extends OpMode {
         secondPreload = follower.pathBuilder()
                 .addPath(new BezierCurve(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPoseControl1), new Point(PoseSpec.pickupPose)))
                 .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(3)
-
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0, ()-> outtakeReset())
+                .addParametricCallback(0.6, ()-> servoConfig.intRot.setPosition(IntConst.rot_DROP))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .addParametricCallback(0.95, ()-> servoConfig.intClaw.setPosition(IntConst.claw_OPEN))
 //                .addParametricCallback(0, () -> pickup())
 //                .addParametricCallback(0.5, () -> follower.setMaxPower(0.3))
 //                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_CLOSED))
@@ -101,20 +112,18 @@ public class SpecAutoRework extends OpMode {
 //                .setPathEndTimeoutConstraint(0)
 //                .addParametricCallback(0.1, () -> place())
 
-                .addPath(new BezierCurve(
-                        new Point(PoseSpec.scorePose2), new Point(PoseSpec.firstPushControl1),
-                        new Point(PoseSpec.firstPushControl2), new Point(PoseSpec.firstSample)))
+                .addPath(new BezierLine(new Point(PoseSpec.scorePose2), new Point(firstSample)))
+
                 .setConstantHeadingInterpolation(0)
                 .setZeroPowerAccelerationMultiplier(3)
 //                .setPathEndTimeoutConstraint(0)
                 .addParametricCallback(0., () -> follower.setMaxPower(0.6))
 
 
-                .addPath(new BezierLine(new Point(PoseSpec.firstSample), new Point(PoseSpec.firstPush)))
-                .setConstantHeadingInterpolation(0)
+
 //                .setPathEndTimeoutConstraint(0)
 
-                .addPath(new BezierCurve(new Point(PoseSpec.firstPush), new Point(PoseSpec.secondSampleControl), new Point(PoseSpec.secondSample)))
+                /*.addPath(new BezierCurve(new Point(PoseSpec.firstPush), new Point(PoseSpec.secondSampleControl), new Point(PoseSpec.secondSample)))
                 .setConstantHeadingInterpolation(0)
 //                .setPathEndTimeoutConstraint(0)
 
@@ -130,8 +139,13 @@ public class SpecAutoRework extends OpMode {
                 .addPath(new BezierLine(new Point(PoseSpec.thirdSample),new Point(PoseSpec.thirdPush)))
                 .setConstantHeadingInterpolation(0)
                 .setPathEndTimeoutConstraint(0)
-
+*/
                 .build();
+
+                thirdSamp = follower.pathBuilder()
+                        .addPath(new BezierLine(new Point(firstSample), new Point(secondSample)))
+                        .setConstantHeadingInterpolation(0)
+                        .build();
     }
 
     public void autonomousPathUpdate() {
@@ -140,7 +154,7 @@ public class SpecAutoRework extends OpMode {
                 follower.followPath(preload);
                 setPathState(1);
                 break;
-            /*case 1:
+            case 1:
             {
                 if(!follower.isBusy()){
                     if(startSearchTimer){
@@ -149,35 +163,50 @@ public class SpecAutoRework extends OpMode {
                     }
                     if(searchTimer.milliseconds()>500 && !detected)
                         detectAndTrackYellowSample();
-                    if (motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition < 20 && detected && !readyToGrab) {
+                    if (motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition < 20 && detected && !readyToGrab && !grabbed) {
                         readyToGrab = true;
+                        grabbed = true;
                         grabTimerLL.reset();
                     }
-//                    if (readyToGrab) {
-//                        if (grabTimerLL.milliseconds() > 500)
-//                            servoConfig.intY.setPosition(IntConst.y_GRAB);
-//                        if (grabTimerLL.milliseconds() > 1000) {
-//                            servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
-//                            readyToGrab = false;
-//                        }
-//                    }
-//                    if (!readyToGrab && !score) {
-//                        if (grabTimerLL.milliseconds() > 1200) {
-//                            servoConfig.intY.setPosition(IntConst.y_TRANSFER);
-//                        }
-//                    }
+                    if (readyToGrab) {
+                        if (grabTimerLL.milliseconds() > 700)
+                            servoConfig.intY.setPosition(IntConst.y_GRAB);
+                        if (grabTimerLL.milliseconds() > 1000) {
+                            servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+                            readyToGrab = false;
+                        }
+                    }
+                    if (!readyToGrab && !score && detected) {
+                        if (grabTimerLL.milliseconds() > 1200) {
+                            servoConfig.intY.setPosition(IntConst.y_DROP);
+                        }
+                        if (grabTimerLL.milliseconds() > 1300) {
+                            servoConfig.intRot.setPosition(0.1);
+                            intTargetPosition = IntConst.slideRetracted;
+                            follower.setMaxPower(0.8);
+                            follower.followPath(secondPreload);
+                            setPathState(2);
+                        }
+                    }
                 }
-            }*/
-            case 1:
-                if(!follower.isBusy()){
-                    follower.followPath(secondPreload);
-                    setPathState(2);
-                }
-            break;
+                break;
+            }
             case 2:
                 if(!follower.isBusy()){
+
+                }
+                break;
+            case 3:
+                if(!follower.isBusy()){
+
                     follower.followPath(scorePickup);
-                    setPathState(-1);
+                    setPathState(3);
+                }
+            case 4:
+                if(!follower.isBusy())
+                {
+                    intTargetPosition = IntConst.slideExtended;
+                    servoConfig.intY.setPosition(IntConst.y_HOVER);
                 }
         }
     }
@@ -202,7 +231,6 @@ public class SpecAutoRework extends OpMode {
         telemetry.addData("heading", follower.getPose().getHeading());
         telemetry.addData("T Value", follower.getCurrentTValue());
         telemetry.addData("Out position", motorConfig.frontSlideMotor.getCurrentPosition());
-
         telemetry.update();
     }
 
@@ -262,7 +290,7 @@ public class SpecAutoRework extends OpMode {
             for (LLResultTypes.DetectorResult target : result.getDetectorResults()) {
                 String detectedClass = target.getClassName();
                 boolean valid = (selectMode == 0 && detectedClass.contains("blue")) ||
-                                (selectMode == 1 && detectedClass.contains("red"));
+                        (selectMode == 1 && detectedClass.contains("red"));
                 if (valid ) {
                     sampleTarget = target;
                     break;
@@ -283,8 +311,7 @@ public class SpecAutoRework extends OpMode {
             double yInches = CAMERA_HEIGHT_IN * Math.tan(totalVertRad);
             double xInches = yInches * Math.tan(txRad);
             yInches += 3.7;
-            if(yInches>16)
-                yInches += 1;
+
             boolean horizontal = isHorizontal(sampleTarget, yInches);
 
             double turretServo = map(xInches, MIN_XOFFSET, MAX_XOFFSET, SERVO_MIN, SERVO_MAX);
@@ -292,9 +319,9 @@ public class SpecAutoRework extends OpMode {
             servoConfig.intRot.setPosition(turretServo);
             detected = true;
             if (horizontal)
-                servoConfig.intClawRot.setPosition(map(turretServo,0.1,SERVO_MAX,0.44,0.1));
+                servoConfig.intClawRot.setPosition(map(turretServo,SERVO_MIN,SERVO_MAX,0.44,0.1));
             else
-                servoConfig.intClawRot.setPosition(map(turretServo,0.1,SERVO_MAX,0.81,0.48));
+                servoConfig.intClawRot.setPosition(map(turretServo,SERVO_MIN,SERVO_MAX,0.81,0.48));
 
             pressed = true;
 
@@ -359,17 +386,17 @@ public class SpecAutoRework extends OpMode {
     }
 
     public void pickup(){
-         servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
-         outTargetPosition = OutConst.slidesDown;
+        servoConfig.setOuttakePos(OutConst.lr_PICK, OutConst.y_PICK, OutConst.link_INIT, OutConst.claw_OPEN);
+        outTargetPosition = OutConst.slidesDown;
     }
 
     public void place(){
-        servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_PLACE, OutConst.claw_CLOSED);
+        servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_INIT, OutConst.claw_CLOSED);
         outTargetPosition = OutConst.slideSpecimen;
     }
 
     public void initialise(){
-        servoConfig.intY.setPosition(IntConst.y_INIT);
+        servoConfig.intY.setPosition(IntConst.y_MIDDLE);
         servoConfig.intRot.setPosition(IntConst.rot_GRAB);
         servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
@@ -457,5 +484,15 @@ public class SpecAutoRework extends OpMode {
         else motorConfig.intakeMotor.setPower(intakePower);
 
         motorConfig.intakeMotor.setPower(intakePower);
+    }
+    public void outtakeReset(){
+        outTargetPosition = OutConst.slidesDown;
+
+        servoConfig.outLeft.setPosition(OutConst.lr_PICK);
+        servoConfig.outRight.setPosition(OutConst.lr_PICK);
+        servoConfig.outY.setPosition(OutConst.y_PICK);
+        servoConfig.outLink.setPosition(OutConst.link_INIT);
+        servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+
     }
 }
