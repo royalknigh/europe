@@ -1,18 +1,23 @@
 package comp.auto;
 
+import com.google.gson.annotations.JsonAdapter;
+import com.pedropathing.follower.Follower;
 import com.pedropathing.pathgen.BezierCurve;
 import com.pedropathing.pathgen.BezierLine;
 import com.pedropathing.pathgen.PathChain;
 import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
-import com.pedropathing.follower.*;
 import com.pedropathing.util.Timer;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.PWMOutputEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import java.util.List;
 
 import configs.MotorConfig;
 import configs.ServoConfig;
@@ -21,8 +26,8 @@ import consts.OutConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-@Autonomous(name = "SpecAuto", group = ".Comp")
-public class SpecAuto extends OpMode {
+@Autonomous(name = "SpecAutoRework", group = ".Comp")
+public class SpecAutoRework extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -33,26 +38,50 @@ public class SpecAuto extends OpMode {
 
     private PIDFController outPID, intPID;
 
-    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.1;
+    public static double oP = 0.01, oI = 0, oD = 0, oF = 0.03;
     public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
 
     public double outTargetPosition = OutConst.slidesDown;
     public double intTargetPosition = IntConst.slideRetracted;
 
+    private static final double CAMERA_HEIGHT_IN = 8; // inches
+    private static final double CAMERA_TILT_DEG = 42.5;  // degrees
+    private static final double TURRET_LENGTH = 5.5;
+    private static final double MAX_SLIDER_INCHES = 19.0;
+    private static final int MAX_SLIDER_TICKS = 650;
+    private static final double SERVO_MIN = 0.1;
+    private static final double SERVO_MAX = 0.45;
+    private static final double MAX_XOFFSET = 2.5;//4.4
+    private static final double MIN_XOFFSET = -2.5;
+    private static final double TICKS_PER_INCH = MAX_SLIDER_TICKS / MAX_SLIDER_INCHES;
+    private double sliderTargetInches = 0;
+    private boolean pressed = false;
+    private int selectMode = 0;
+    private boolean detected = false;
+    private int trackingTargetTicks = 0;
+    private boolean startSearchTimer = true;
+    private boolean leftPressed = false;
+    private boolean readyToGrab = false;
+    private boolean score = false;
+
+    private ElapsedTime searchTimer = new ElapsedTime();
+    private ElapsedTime grabTimerLL = new ElapsedTime();
+
     private boolean isOutSlideDown, isIntSlideDown;
 
-
+    private Limelight3A limelight;
     private PathChain preload, secondPreload, scorePickup;
 
     public void buildPaths() {
         preload = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(PoseSpec.startPose), new Point(PoseSpec.scorePose)))
                 .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(3)
-                .setPathEndTimeoutConstraint(0)
+                .setZeroPowerAccelerationMultiplier(2.0)
+                .addParametricCallback(0, () -> follower.setMaxPower(0.7))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.4))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.2))
 
-                .addParametricCallback(0, () -> place())
-                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
+                .setPathEndTimeoutConstraint(0)
                 .build();
 
         secondPreload = follower.pathBuilder()
@@ -109,26 +138,38 @@ public class SpecAuto extends OpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
-                follower.setMaxPower(0.7);
                 follower.followPath(preload);
                 setPathState(1);
                 break;
             case 1:
+            {
                 if(!follower.isBusy()){
-                    servoConfig.intY.setPosition(IntConst.y_DROP);
-                    servoConfig.intRot.setPosition(IntConst.rot_DROP);
-                    follower.setMaxPower(0.7);
-                    follower.followPath(secondPreload,true);
-                    setPathState(2);
+                    if(startSearchTimer){
+                        startSearchTimer = false;
+                        searchTimer.reset();
+                    }
+                    if(searchTimer.milliseconds()>500 && !detected)
+                        detectAndTrackYellowSample();
+                    if (motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition < 20 && detected && !readyToGrab) {
+                        readyToGrab = true;
+                        grabTimerLL.reset();
+                    }
+//                    if (readyToGrab) {
+//                        if (grabTimerLL.milliseconds() > 500)
+//                            servoConfig.intY.setPosition(IntConst.y_GRAB);
+//                        if (grabTimerLL.milliseconds() > 1000) {
+//                            servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+//                            readyToGrab = false;
+//                        }
+//                    }
+//                    if (!readyToGrab && !score) {
+//                        if (grabTimerLL.milliseconds() > 1200) {
+//                            servoConfig.intY.setPosition(IntConst.y_TRANSFER);
+//                        }
+//                    }
                 }
-                break;
-            case 2:
-                if(!follower.isBusy()){
-                    follower.setMaxPower(0.7);
-                    follower.followPath(scorePickup,true);
-                    setPathState(-1);
-                }
-                break;
+            }
+            break;
         }
     }
 
@@ -158,16 +199,16 @@ public class SpecAuto extends OpMode {
 
     @Override
     public void init() {
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.pipelineSwitch(4);
+        limelight.start();
+
         pathTimer = new Timer();
         opmodeTimer = new Timer();
         opmodeTimer.resetTimer();
 
-
-
         motorConfig = new MotorConfig(hardwareMap);
         servoConfig = new ServoConfig(hardwareMap);
-
-
 
         follower = new Follower(hardwareMap, FConstants.class, LConstants.class);
         follower.setStartingPose(PoseSpec.startPose);
@@ -178,7 +219,21 @@ public class SpecAuto extends OpMode {
     }
 
     @Override
-    public void init_loop() {}
+    public void init_loop(){
+        if(gamepad1.dpad_left && !leftPressed){
+            selectMode = (selectMode+1)%2;
+            leftPressed = true;
+        }else if(!gamepad1.dpad_left) {
+            leftPressed = false;
+        }
+
+        String modeName;
+        if(selectMode == 1)
+            modeName = "Red";
+        else modeName = "Blue";
+        telemetry.addData("Mode: ",modeName);
+        telemetry.update();
+    }
 
     @Override
     public void start() {
@@ -189,7 +244,107 @@ public class SpecAuto extends OpMode {
     @Override
     public void stop() {
     }
+    private void detectAndTrackYellowSample() {
+        LLResult result = limelight.getLatestResult();
+        if (result != null && result.isValid() && !result.getDetectorResults().isEmpty()) {
+            LLResultTypes.DetectorResult sampleTarget = null;
 
+            // Find the first yellow target
+            for (LLResultTypes.DetectorResult target : result.getDetectorResults()) {
+                String detectedClass = target.getClassName();
+                boolean valid = (selectMode == 0 && detectedClass.contains("blue")) ||
+                                (selectMode == 1 && detectedClass.contains("red"));
+                if (valid ) {
+                    sampleTarget = target;
+                    break;
+                }
+            }
+
+            if (sampleTarget == null) {
+                telemetry.addLine("No target detected");
+                return; // no yellow target found, skip rest
+            }
+
+            double txDeg = sampleTarget.getTargetXDegrees();
+            double tyDeg = sampleTarget.getTargetYDegrees();
+
+            double totalVertRad = Math.toRadians(CAMERA_TILT_DEG + tyDeg);
+            double txRad = Math.toRadians(txDeg);
+
+            double yInches = CAMERA_HEIGHT_IN * Math.tan(totalVertRad);
+            double xInches = yInches * Math.tan(txRad);
+            yInches += 3.7;
+            if(yInches>16)
+                yInches += 1;
+            boolean horizontal = isHorizontal(sampleTarget, yInches);
+
+            double turretServo = map(xInches, MIN_XOFFSET, MAX_XOFFSET, SERVO_MIN, SERVO_MAX);
+            turretServo = Math.max(SERVO_MIN, Math.min(SERVO_MAX, turretServo));
+            servoConfig.intRot.setPosition(turretServo);
+            detected = true;
+            if (horizontal)
+                servoConfig.intClawRot.setPosition(map(turretServo,0.1,SERVO_MAX,0.44,0.1));
+            else
+                servoConfig.intClawRot.setPosition(map(turretServo,0.1,SERVO_MAX,0.81,0.48));
+
+            pressed = true;
+
+            double turretAngleRad = Math.toRadians(map(turretServo,SERVO_MIN,SERVO_MAX,-39,39));
+            double verticalCompensation = Math.abs(Math.sin(turretAngleRad)) * 2;
+            sliderTargetInches = (yInches - TURRET_LENGTH)+ verticalCompensation;
+            trackingTargetTicks = (int) (sliderTargetInches * TICKS_PER_INCH);
+            trackingTargetTicks = Math.max(0, Math.min(MAX_SLIDER_TICKS, trackingTargetTicks));
+            intTargetPosition = trackingTargetTicks;
+
+
+            telemetry.addData("pressed", pressed);
+            telemetry.addData("trackingTargetTicks", trackingTargetTicks);
+            telemetry.addData("intakeMotorPos", motorConfig.intakeMotor.getCurrentPosition());
+            telemetry.addData("tx (deg)", "%.2f", txDeg);
+            telemetry.addData("ty (deg)", "%.2f", tyDeg);
+            telemetry.addData("Y Distance (in)", "%.2f", yInches);
+            telemetry.addData("X Distance (in)", "%.2f", xInches);
+            telemetry.addData("isHorizontal", horizontal);
+            telemetry.addData("Detected Class", "yellow");
+        } else {
+            telemetry.addLine("No valid target detected");
+        }
+    }
+
+    private boolean isHorizontal(LLResultTypes.DetectorResult target, double yInches) {
+        List<List<Double>> corners = target.getTargetCorners();
+        if (corners.size() == 4) {
+            double x0 = corners.get(0).get(0), y0 = corners.get(0).get(1);
+            double x1 = corners.get(1).get(0), y1 = corners.get(1).get(1);
+            double x2 = corners.get(2).get(0), y2 = corners.get(2).get(1);
+
+            double width = Math.hypot(x1 - x0, y1 - y0);
+            double height = Math.hypot(x2 - x1, y2 - y1);
+
+            double ratio = width / height;
+
+            // Tuned exponential ratio threshold
+            if(yInches<10){
+                return ratio>1.3;
+
+            }
+            // Tuned exponential ratio threshold
+            double A = 1.3;
+            double B = 0.05;
+            double threshold = A + B*Math.pow((yInches-10), 1.4);
+
+            telemetry.addData("Width", width);
+            telemetry.addData("Height", height);
+            telemetry.addData("Ratio", ratio);
+            telemetry.addData("Threshold", threshold);
+
+            return ratio > threshold;
+        }
+        return false;
+    }
+    private double map(double val, double inMin, double inMax, double outMin, double outMax) {
+        return outMin + (val - inMin) * (outMax - outMin) / (inMax - inMin);
+    }
     public void extend(){
         servoConfig.setIntakePos(IntConst.rot_GRAB, IntConst.y_GRAB, IntConst.clawRot_INIT, IntConst.claw_OPEN);
     }

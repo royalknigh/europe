@@ -9,6 +9,7 @@ import com.pedropathing.pathgen.Point;
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import  com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.pedropathing.follower.*;
@@ -22,24 +23,24 @@ import consts.IntConst;
 import consts.OutConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
-
-@Autonomous(name = "SampleAuto", group = ".Comp")
+@Disabled
+@Autonomous(name = "Sample", group = ".Comp")
 public class SampleAuto extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
     private int pathState;
+    private boolean slides = true;
 
     private Pose startPose = new Pose(7, 112.5, Math.toRadians(270));
 
-    private Pose scorePose = new Pose(12, 127, Math.toRadians(325));
+    private Pose scorePose = new Pose(8, 124, Math.toRadians(270));
 
     private Pose scorePose1 = new Pose(12, 128, Math.toRadians(310));
 
     private Pose scorePose2 = new Pose(12, 129, Math.toRadians(330));
 
-
-    private Pose firstSample = new Pose(12, 127.1, Math.toRadians(-6));
+    private Pose firstSample = new Pose(12, 127.1, Math.toRadians(0));
 
     private Pose secondSample = new Pose(12, 127.1, Math.toRadians(12));
 
@@ -56,7 +57,7 @@ public class SampleAuto extends OpMode {
 
     private PIDFController outPID, intPID;
 
-    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.007;
+    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.1;
     public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
 
     public double outTargetPosition = OutConst.slidesDown;
@@ -68,8 +69,8 @@ public class SampleAuto extends OpMode {
 
     public void buildPaths() {
         preloadScore = follower.pathBuilder()
-                .addPath(new BezierLine(new Point(startPose), new Point(scorePose)))
-                .setLinearHeadingInterpolation(startPose.getHeading(), scorePose.getHeading())
+                .addPath(new BezierLine(new Point(startPose), new Point(firstSample)))
+                .setLinearHeadingInterpolation(startPose.getHeading(), firstSample.getHeading())
                 .setZeroPowerAccelerationMultiplier(2)
                 .setPathEndTimeoutConstraint(0)
                 .build();
@@ -142,22 +143,25 @@ public class SampleAuto extends OpMode {
                 follower.followPath(preloadScore);
                 outTargetPosition = OutConst.slidesSampleHigh;
                 scoreSample();
-                servoConfig.outY.setPosition(OutConst.y_PICK);
-                setPathState(1);
+                servoConfig.outY.setPosition(OutConst.y_SAMPLE);
                 dropped = false;
                 resetTimer.reset();
-                follower.setMaxPower(0.7);
+                follower.setMaxPower(0.4);
+                setPathState(1);
+
                 break;
             case 1:
                 if(!follower.isBusy()){
+                    follower.setMaxPower(0.7);
                     if(!dropped) {
-                        if(resetTimer.milliseconds() > 500){
+                        if(resetTimer.milliseconds() > 1200){
                             drop();
                             resetTimer.reset();
                         }
                     }
                     else{
-                        if(resetTimer.milliseconds()>500) resetExtend();
+                        if(resetTimer.milliseconds()>500)
+                            resetExtend();
                         if(resetTimer.milliseconds()>800) {
                             outTargetPosition  = OutConst.slideTransfer;
                             follower.followPath(firstExtend);
@@ -178,7 +182,7 @@ public class SampleAuto extends OpMode {
                         follower.followPath(firstScore);
                         dropped  =false;
                         resetTimer.reset();
-                        setPathState(3);
+                        setPathState(-1);
                     }
                 }
                 break;
@@ -299,19 +303,17 @@ public class SampleAuto extends OpMode {
 
         follower.update();
         autonomousPathUpdate();
-
         updatePIDFController();
-
-        setIntPID();
+        if(slides) setIntPID();
         setOutPID();
 
         telemetry.addData("path state", pathState);
-        telemetry.addData("x", follower.getPose().getX());
-        telemetry.addData("y", follower.getPose().getY());
-        telemetry.addData("heading", Math.toDegrees(follower.getPose().getHeading()));
-        telemetry.addData("intake motor position", motorConfig.intakeMotor.getCurrentPosition());
-        telemetry.addData("slide motor position", motorConfig.frontSlideMotor.getCurrentPosition());
-        telemetry.addData("reset", resetTimer);
+//        telemetry.addData("x", follower.getPose().getX());
+//        telemetry.addData("y", follower.getPose().getY());
+//        telemetry.addData("heading", Math.toDegrees(follower.getPose().getHeading()));
+//        telemetry.addData("intake motor position", motorConfig.intakeMotor.getCurrentPosition());
+//        telemetry.addData("slide motor position", motorConfig.frontSlideMotor.getCurrentPosition());
+//        telemetry.addData("reset", resetTimer);
         telemetry.update();
     }
 
@@ -376,9 +378,9 @@ public class SampleAuto extends OpMode {
             servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
             servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
 
-            if(intakeTimer.milliseconds()>750)
+            if(intakeTimer.milliseconds()>1400)
                 servoConfig.intY.setPosition(IntConst.y_GRAB);
-            if (intakeTimer.milliseconds() > 1250) {
+            if (intakeTimer.milliseconds() > 2000) {
                 servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                 intakeTimer.reset();
                 closedIntake = true;

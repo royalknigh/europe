@@ -60,9 +60,11 @@ public class OdoTest extends OpMode
 {
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+    public ElapsedTime loopTime = new ElapsedTime();
+    public int looptime = 0;
     private DcMotor leftDrive = null;
     private DcMotor rightDrive = null;
-
+    public boolean startTimer = true;
     private MotorConfig motorConfig;
     /*
      * Code to run ONCE when the driver hits INIT
@@ -70,7 +72,6 @@ public class OdoTest extends OpMode
     @Override
     public void init() {
         telemetry.addData("Status", "Initialized");
-
         // Initialize the hardware variables. Note that the strings used here as parameters
         // to 'get' must correspond to the names assigned during the robot configuration
         // step (using the FTC Robot Controller app on the phone).
@@ -97,12 +98,23 @@ public class OdoTest extends OpMode
      */
     @Override
     public void loop() {
+        if(startTimer) {
+            loopTime.reset();
+            startTimer = false;
+        }
+        looptime++;
+        if(loopTime.seconds()>1){
+            telemetry.addData("loops", looptime);
+            telemetry.update();
+            loopTime.reset();
+            looptime = 0;
+        }
         // Setup a variable for each drive wheel to save power level for telemetry
         // Show the elapsed game time and wheel power.
-        telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Left encoder: ", motorConfig.frontLeftMotor.getCurrentPosition());
-        telemetry.addData("Right encoder", motorConfig.backRightMotor.getCurrentPosition());
-        telemetry.addData("Strafe encoder", motorConfig.frontRightMotor.getCurrentPosition());
+//        telemetry.addData("Status", "Run Time: " + runtime.toString());
+//        telemetry.addData("Left encoder: ", motorConfig.frontLeftMotor.getCurrentPosition());
+//        telemetry.addData("Right encoder", motorConfig.backRightMotor.getCurrentPosition());
+//        telemetry.addData("Strafe encoder", motorConfig.frontRightMotor.getCurrentPosition());
 
 
 

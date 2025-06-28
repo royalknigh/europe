@@ -77,9 +77,9 @@ public class SensorLimelight3A extends LinearOpMode {
     {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
 
-        telemetry.setMsTransmissionInterval(11);
+            telemetry.setMsTransmissionInterval(11);
 
-        limelight.pipelineSwitch(0);
+            limelight.pipelineSwitch(0);
 
         /*
          * Starts polling for data.  If you neglect to call start(), getLatestResult() will return null.
@@ -133,7 +133,7 @@ public class SensorLimelight3A extends LinearOpMode {
                     // Access detector results
                     List<LLResultTypes.DetectorResult> detectorResults = result.getDetectorResults();
                     for (LLResultTypes.DetectorResult dr : detectorResults) {
-                        telemetry.addData("Detector", "Class: %s, Area: %.2f", dr.getClassName(), dr.getTargetArea());
+                        telemetry.addData("Detector", "Class: %s, Area: %.2f", dr.getTargetXPixels(), dr.getTargetArea());
                     }
 
                     // Access fiducial results

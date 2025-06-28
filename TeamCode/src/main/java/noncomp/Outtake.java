@@ -10,6 +10,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.pedropathing.util.CustomPIDFCoefficients;
 import com.pedropathing.util.PIDFController;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+
 import configs.MotorConfig;
 import consts.IntConst;
 import consts.OutConst;
@@ -24,7 +26,7 @@ public class Outtake extends OpMode {
     private boolean areSlidesDown = true;
 
     private PIDFController outPID;
-    public static double oP = 0.008, oI = 0, oD = 0, oF = 0.07;
+    public static double oP = 0.008, oI = 0.0013, oD = 0.000005, oF = 0.03;
     public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
     private PIDFController intPID;
     public static int intTargetPosition = 0;
@@ -63,6 +65,7 @@ public class Outtake extends OpMode {
     @Override
     public void init() {
         motorConfig = new MotorConfig(hardwareMap);
+        motorConfig.intakeMotor.setCurrentAlert(9.2, CurrentUnit.AMPS);
 
         outLeft = hardwareMap.get(Servo.class, "outLeft");
         outRight = hardwareMap.get(Servo.class, "outRight");
@@ -147,8 +150,8 @@ public class Outtake extends OpMode {
         intClawRot.setPosition(clawRot);
 
         ptoRot.setPosition(IntConst.ptoUnlock);
-        ptoLeft.setPosition(IntConst.ptoLegsUp);
-        ptoRight.setPosition(IntConst.ptoLegsUp);
+        ptoLeft.setPosition(ptol);
+        ptoRight.setPosition(ptol);
 
     }
 
@@ -196,32 +199,27 @@ public void setOutPID(){
 
     public void setIntPID() {
         intPID.setTargetPosition(intTargetPosition);
-        intPID.updatePosition((double) (motorConfig.intakeMotor.getCurrentPosition()));
+        intPID.updatePosition(motorConfig.intakeMotor.getCurrentPosition());
 
-        double IntakePower = intPID.runPIDF();
+        double intakePower = intPID.runPIDF();
 
-        if (Math.abs(motorConfig.intakeMotor.getCurrentPosition() - intTargetPosition) < 10)
-            IntakePower = 0;
-
-        if (motorConfig.intakeMotor.getCurrentPosition() > 10) isIntSlideDown = false;
-
-        if (motorConfig.intakeMotor.getCurrentPosition() < 60 && motorConfig.intakeMotor.getVelocity() < 0.05 && intTargetPosition == IntConst.slideRetracted) {
-            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-            MotorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+        if (motorConfig.intakeMotor.isOverCurrent() && intTargetPosition == IntConst.slideRetracted) {
+            intakePower = 0;
+            motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+            motorConfig.intakeMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
             isIntSlideDown = true;
         }
 
         if (intTargetPosition == IntConst.slideRetracted && isIntSlideDown)
             motorConfig.intakeMotor.setPower(0);
-
-        if (intTargetPosition == IntConst.slideRetracted && motorConfig.intakeMotor.getCurrentPosition() > 10)
+        else if (intTargetPosition == IntConst.slideRetracted)
             motorConfig.intakeMotor.setPower(-1);
-
-        else motorConfig.intakeMotor.setPower(IntakePower);
-
-        motorConfig.intakeMotor.setPower(IntakePower);
-
+        else
+            motorConfig.intakeMotor.setPower(intakePower);
     }
+
+
+
 
     public void updatePIDFController() {
         CustomPIDFCoefficients intCoefficients = new CustomPIDFCoefficients(iP, iI, iD, iF);

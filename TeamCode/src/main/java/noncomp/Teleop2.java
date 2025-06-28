@@ -66,6 +66,8 @@ public class Teleop2 extends LinearOpMode {
             specimen = false;
         }
 
+        specimen = gamepad1.right_bumper && !gamepad1.left_bumper;
+
         updatePIDFController();
 
         servoConfig.setInitPos();
