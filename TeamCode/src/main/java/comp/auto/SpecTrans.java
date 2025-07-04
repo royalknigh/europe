@@ -39,16 +39,16 @@ public class SpecTrans extends OpMode {
 
     private PIDFController outPID, intPID;
 
-    public static double oP = 0.01, oI = 0, oD = 0, oF = 0.03;
+    public static double oP = 0.005, oI = 0, oD = 0, oF = 0.1;
     public static double iP = 0.005, iI = 0, iD = 0, iF = 0;
 
     public double outTargetPosition = OutConst.slidesDown;
     public double intTargetPosition = IntConst.slideRetracted;
 
     private static final double CAMERA_HEIGHT_IN = 8; // inches
-    private static final double CAMERA_TILT_DEG = 41;  // degrees
+    private static final double CAMERA_TILT_DEG = 47;  // degrees
     private static final double TURRET_LENGTH = 5.5;
-    private static final double MAX_SLIDER_INCHES = 19.0;
+    private static final double MAX_SLIDER_INCHES = 17.71;
     private static final int MAX_SLIDER_TICKS = 650;
     private static final double SERVO_MIN = 0.1;
     private static final double SERVO_MAX = 0.45;
@@ -72,23 +72,21 @@ public class SpecTrans extends OpMode {
     private boolean isOutSlideDown, isIntSlideDown;
 
     private Limelight3A limelight;
-    private PathChain preload, secondPreload, scorePickup, thirdSamp;
-    private Pose firstSample = new Pose(22, 18, 0);
-    private Pose secondSample = new Pose(22, 10, 0);
+    private PathChain preload, secondPreload, scorePickup, secondScore, firstSamp, firstSampLow, secondSamp, thirdSamp,thirdSpec,thirScoredSpec, pickupSpec5, pickupSpec,pickupSpec6,pickupSpec7;
+    private Pose firstSample = new Pose(18, 18.5, 0);
+    private Pose secondSample = new Pose(18, 15.5, 0);
     private Pose firstPick= new Pose(10, 25, 0);
+    private Pose firstSampleLow = new Pose(9, 18.5, 0);
+    private Pose thirdSample = new Pose(29,16,0);
 
     public void buildPaths() {
         preload = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(PoseSpec.startPose), new Point(PoseSpec.scorePose)))
                 .setConstantHeadingInterpolation(0)
                 .setZeroPowerAccelerationMultiplier(3.0)
-//                .addParametricCallback(0, () -> follower.setMaxPower(0.8))
                 .addParametricCallback(0.6, () -> follower.setMaxPower(0.5))
-                .addParametricCallback(0, () -> place())
+                .addParametricCallback(0, () -> placeFirst())
                 .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
-//                .addParametricCallback(0.8, () -> follower.setMaxPower(0.2))
-
-//                .setPathEndTimeoutConstraint(0)
                 .build();
 
         secondPreload = follower.pathBuilder()
@@ -96,56 +94,111 @@ public class SpecTrans extends OpMode {
                 .setConstantHeadingInterpolation(0)
                 .setZeroPowerAccelerationMultiplier(2)
                 .addParametricCallback(0, ()-> outtakeReset())
-                .addParametricCallback(0.6, ()-> servoConfig.intRot.setPosition(IntConst.rot_DROP))
+                .addParametricCallback(0.3, ()-> servoConfig.intRot.setPosition(IntConst.rot_DROP))
                 .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
                 .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
                 .addParametricCallback(0.95, ()-> servoConfig.intClaw.setPosition(IntConst.claw_OPEN))
-//                .addParametricCallback(0, () -> pickup())
-//                .addParametricCallback(0.5, () -> follower.setMaxPower(0.3))
-//                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_CLOSED))
                 .build();
 
-        scorePickup = follower.pathBuilder()
+        pickupSpec = follower.pathBuilder()
+                .addPath(new BezierCurve(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPoseControl1), new Point(PoseSpec.pickupPose3)))
+                .setConstantHeadingInterpolation(Math.toRadians(3))
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0,()->servoConfig.intRot.setPosition(IntConst.rot_AUTO))
+                .addParametricCallback(0, ()-> outtakeReset())
+                .addParametricCallback(0, ()-> follower.setMaxPower(0.8))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .build();
+
+        pickupSpec5 = follower.pathBuilder()
+                .addPath(new BezierCurve(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPoseControl1), new Point(PoseSpec.pickupPose3)))
+                .setConstantHeadingInterpolation(Math.toRadians(3))
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0, ()-> outtakeReset())
+                .addParametricCallback(0, ()-> follower.setMaxPower(0.8))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .build();
+
+        pickupSpec6 = follower.pathBuilder()
+                .addPath(new BezierCurve(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPoseControl1), new Point(PoseSpec.pickupPose3)))
+                .setConstantHeadingInterpolation(Math.toRadians(3))
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0, ()-> outtakeReset())
+                .addParametricCallback(0, ()-> follower.setMaxPower(0.8))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .build();
+        pickupSpec7= follower.pathBuilder()
+                .addPath(new BezierCurve(new Point(PoseSpec.scorePose), new Point(PoseSpec.pickupPoseControl1), new Point(PoseSpec.pickupPose3)))
+                .setConstantHeadingInterpolation(Math.toRadians(3))
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0, ()-> outtakeReset())
+                .addParametricCallback(0, ()-> follower.setMaxPower(1))
+                .build();
+
+        secondScore = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(PoseSpec.pickupPose), new Point(PoseSpec.scorePose2)))
-                .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(3)
-//                .setPathEndTimeoutConstraint(0)
-//                .addParametricCallback(0.1, () -> place())
+                .setConstantHeadingInterpolation(Math.toRadians(15))
 
-                .addPath(new BezierLine(new Point(PoseSpec.scorePose2), new Point(firstSample)))
-
-                .setConstantHeadingInterpolation(0)
-                .setZeroPowerAccelerationMultiplier(3)
-//                .setPathEndTimeoutConstraint(0)
-                .addParametricCallback(0., () -> follower.setMaxPower(0.6))
-
-
-
-//                .setPathEndTimeoutConstraint(0)
-
-                /*.addPath(new BezierCurve(new Point(PoseSpec.firstPush), new Point(PoseSpec.secondSampleControl), new Point(PoseSpec.secondSample)))
-                .setConstantHeadingInterpolation(0)
-//                .setPathEndTimeoutConstraint(0)
-
-                .addPath(new BezierLine(new Point(PoseSpec.secondSample),new Point(PoseSpec.secondPush)))
-                .setConstantHeadingInterpolation(0)
-//                .setPathEndTimeoutConstraint(0)
-
-                .addPath(new BezierCurve(
-                        new Point(PoseSpec.secondPush), new Point(PoseSpec.thirdSampleControl), new Point(PoseSpec.thirdSample)))
-                .setConstantHeadingInterpolation(0)
-//                .setPathEndTimeoutConstraint(0)
-
-                .addPath(new BezierLine(new Point(PoseSpec.thirdSample),new Point(PoseSpec.thirdPush)))
-                .setConstantHeadingInterpolation(0)
-                .setPathEndTimeoutConstraint(0)
-*/
+                .addParametricCallback(0.05, () -> place())
+                .addParametricCallback(0, ()-> follower.setMaxPower(0.8))
+                .addParametricCallback(0.3,()-> servoConfig.outLink.setPosition(OutConst.link_PLACE))
+                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
+                .setPathEndTValueConstraint(0.97)
                 .build();
 
-                thirdSamp = follower.pathBuilder()
-                        .addPath(new BezierLine(new Point(firstSample), new Point(secondSample)))
-                        .setConstantHeadingInterpolation(0)
-                        .build();
+        thirScoredSpec = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.pickupPose3), new Point(PoseSpec.scorePose2)))
+                .setConstantHeadingInterpolation(Math.toRadians(15))
+
+                .addParametricCallback(0.05, () -> place())
+                .addParametricCallback(0, ()-> follower.setMaxPower(0.9))
+                .addParametricCallback(0.3,()-> servoConfig.outLink.setPosition(OutConst.link_PLACE))
+                .addParametricCallback(0.95, () -> servoConfig.outClaw.setPosition(OutConst.claw_OPEN))
+                .setPathEndTValueConstraint(0.97)
+                .build();
+
+        firstSamp = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.scorePose2), new Point(firstSample)))
+                .setConstantHeadingInterpolation(Math.toRadians(5))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .addParametricCallback(0, () -> outtakeReset())
+                .build();
+
+        firstSampLow = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.firstSample), new Point(firstSampleLow)))
+                .setConstantHeadingInterpolation(Math.toRadians(5))
+                .addParametricCallback(0.95, () -> servoConfig.intClaw.setPosition(IntConst.claw_OPEN))
+                .build();
+
+        secondSamp = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(firstSampleLow), new Point(secondSample)))
+                .setConstantHeadingInterpolation(Math.toRadians(5))
+                .addParametricCallback(0.95, () -> servoConfig.intClaw.setPosition(IntConst.claw_OPEN))
+                .build();
+
+        thirdSpec = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(PoseSpec.thirdSample), new Point(PoseSpec.pickupPose3)))
+                .setConstantHeadingInterpolation(Math.toRadians(1))
+                .setZeroPowerAccelerationMultiplier(2)
+                .addParametricCallback(0.3, ()-> servoConfig.intRot.setPosition(IntConst.rot_DROP))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.4))
+                .addParametricCallback(0.95, ()-> servoConfig.intClaw.setPosition(IntConst.claw_OPEN))
+                .build();
+
+        thirdSamp = follower.pathBuilder()
+            .addPath(new BezierLine(new Point(firstSampleLow), new Point(thirdSample)))
+            .setConstantHeadingInterpolation(Math.toRadians(320))
+                .addParametricCallback(0.4, () -> follower.setMaxPower(0.6))
+                .addParametricCallback(0.6, () -> follower.setMaxPower(0.4))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.2))
+            .build();
+
+
     }
 
     public void autonomousPathUpdate() {
@@ -170,21 +223,22 @@ public class SpecTrans extends OpMode {
                     }
                     if (readyToGrab) {
                         if (grabTimerLL.milliseconds() > 700)
-                            servoConfig.intY.setPosition(IntConst.y_GRAB);
-                        if (grabTimerLL.milliseconds() > 1000) {
+                            servoConfig.intY.setPosition(IntConst.y_GRAB_AUTO);
+                        if (grabTimerLL.milliseconds() > 900) {
                             servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                             readyToGrab = false;
                         }
                     }
                     if (!readyToGrab && !score && detected) {
-                        if (grabTimerLL.milliseconds() > 1200) {
+                        if (grabTimerLL.milliseconds() > 1100) {
                             servoConfig.intY.setPosition(IntConst.y_DROP);
                         }
-                        if (grabTimerLL.milliseconds() > 1300) {
+                        if (grabTimerLL.milliseconds() > 1200) {
                             servoConfig.intRot.setPosition(0.1);
                             intTargetPosition = IntConst.slideRetracted;
                             follower.setMaxPower(0.8);
                             follower.followPath(secondPreload);
+                            startSearchTimer = true;
                             setPathState(2);
                         }
                     }
@@ -193,21 +247,213 @@ public class SpecTrans extends OpMode {
             }
             case 2:
                 if(!follower.isBusy()){
+                    if(startSearchTimer){
+                        startSearchTimer = false;
+                        searchTimer.reset();
+                    }
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
 
+                    follower.followPath(secondScore);
+                    setPathState(3);
                 }
                 break;
             case 3:
                 if(!follower.isBusy()){
-
-                    follower.followPath(scorePickup);
-                    setPathState(3);
+                    follower.followPath(firstSamp);
+                    startSearchTimer = true;
+                    readyToGrab = true;
+                    setPathState(4);
                 }
+                break;
             case 4:
                 if(!follower.isBusy())
                 {
-                    intTargetPosition = IntConst.slideExtended;
-                    servoConfig.intY.setPosition(IntConst.y_HOVER);
+                    if(startSearchTimer){
+                        startSearchTimer = false;
+                        grabTimerLL.reset();
+                        intTargetPosition = IntConst.slideExtended;
+                        servoConfig.intRot.setPosition(0.08);
+                        servoConfig.intClawRot.setPosition(0.83);
+
+                    }
+
+                    if(grabTimerLL.milliseconds()>600 && readyToGrab){
+                        servoConfig.intY.setPosition(0.08);
+                    }
+                    if(grabTimerLL.milliseconds()>900 && readyToGrab){
+                        readyToGrab = false;
+                        servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+
+                    }
+                    if(grabTimerLL.milliseconds()>1100){
+                        intTargetPosition = IntConst.slideRetracted;
+                        servoConfig.intY.setPosition(IntConst.y_DROP);
+                        servoConfig.intRot.setPosition(IntConst.rot_DROP);
+                        servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
+                        follower.setMaxPower(0.9);
+                        follower.followPath(firstSampLow);
+                        setPathState(5);
+                    }
                 }
+                break;
+            case 5:
+                if(!follower.isBusy()) {
+                    follower.followPath(secondSamp);
+                    startSearchTimer = true;
+                    readyToGrab = true;
+                    setPathState(6);
+                }
+                break;
+            case 6:
+                if(!follower.isBusy())
+                {
+                    if (startSearchTimer) {
+                        startSearchTimer = false;
+                        grabTimerLL.reset();
+                        intTargetPosition = IntConst.slideExtended;
+                        servoConfig.intRot.setPosition(0.4);
+                        servoConfig.intClawRot.setPosition(0.46);
+
+                    }
+                    if (grabTimerLL.milliseconds() > 600 && readyToGrab) {
+                        servoConfig.intY.setPosition(0.08);
+                    }
+                    if (grabTimerLL.milliseconds() > 900 && readyToGrab) {
+                        readyToGrab = false;
+                        servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+
+                    }
+                    if (grabTimerLL.milliseconds() > 1200) {
+                        intTargetPosition = IntConst.slideRetracted;
+                        servoConfig.intY.setPosition(IntConst.y_DROP);
+                        servoConfig.intRot.setPosition(IntConst.rot_DROP);
+                        servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
+                        follower.followPath(firstSampLow);
+                        startSearchTimer = true;
+                        readyToGrab = true;
+                        setPathState(7);
+                    }
+                }
+                break;
+            case 7:
+                if(!follower.isBusy()) {
+                    if (startSearchTimer) {
+                        startSearchTimer = false;
+                        grabTimerLL.reset();
+
+                    }
+                    if(grabTimerLL.milliseconds()>100) {
+                        follower.setMaxPower(0.7);
+                        follower.followPath(thirdSamp);
+                        servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+                        servoConfig.intClawRot.setPosition(0.54);
+                        startSearchTimer = true;
+                        readyToGrab = true;
+                        setPathState(8);
+                    }
+                }
+                break;
+            case 8:
+                if(!follower.isBusy())
+                {
+                    if(startSearchTimer){
+                        startSearchTimer = false;
+                        grabTimerLL.reset();
+                        intTargetPosition = 400;
+                    }
+                    if (grabTimerLL.milliseconds() > 200 && readyToGrab) {
+                        servoConfig.intY.setPosition(0.08);
+                    }
+                    if (grabTimerLL.milliseconds() > 600 && readyToGrab) {
+                        readyToGrab = false;
+                        servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
+
+                    }
+                    if (grabTimerLL.milliseconds() > 900) {
+                        intTargetPosition = IntConst.slideRetracted;
+                        servoConfig.intY.setPosition(IntConst.y_DROP);
+                        servoConfig.intRot.setPosition(IntConst.rot_DROP);
+                        servoConfig.intClawRot.setPosition(IntConst.clawRot_90);
+                        startSearchTimer = true;
+                        readyToGrab = true;
+                        follower.setMaxPower(0.8);
+                        follower.followPath(thirdSpec);
+                        setPathState(9);
+                    }
+                }
+                break;
+            case 9:
+                if(!follower.isBusy()){
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                    follower.followPath(thirScoredSpec);
+                    setPathState(10);
+                }
+                break;
+            case 10:
+                if(!follower.isBusy()){
+                    follower.followPath(pickupSpec);
+                    setPathState(11);
+                }
+                break;
+            case 11:
+                if(!follower.isBusy()){
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                    follower.followPath(thirScoredSpec);
+                    setPathState(12);
+                }
+                break;
+            case 12:
+                if(!follower.isBusy()){
+                    follower.followPath(pickupSpec5);
+                    setPathState(13);
+                }
+                break;
+            case 13:
+                if(!follower.isBusy()){
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                    follower.followPath(thirScoredSpec);
+                    setPathState(14);
+                }
+                break;
+            case 14:
+                if(!follower.isBusy()){
+                    follower.followPath(pickupSpec6);
+                    setPathState(15);
+                }
+                break;
+            case 15:
+                if(!follower.isBusy()){
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                    follower.followPath(thirScoredSpec);
+                    setPathState(16);
+                }
+                break;
+            case 16:
+                if(!follower.isBusy()){
+                    follower.followPath(pickupSpec7);
+                    setPathState(17);
+                }
+                break;
+            case 17:
+                if(!follower.isBusy()){
+                    servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
+                    servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
+                    follower.followPath(thirScoredSpec);
+                    setPathState(18);
+                }
+                break;
+            case 18:
+                if(!follower.isBusy()){
+                    follower.followPath(pickupSpec6);
+                    setPathState(19);
+                }
+                break;
+
         }
     }
 
@@ -310,8 +556,9 @@ public class SpecTrans extends OpMode {
 
             double yInches = CAMERA_HEIGHT_IN * Math.tan(totalVertRad);
             double xInches = yInches * Math.tan(txRad);
-            yInches += 3.7;
 
+            if(yInches<14)
+                yInches += 1.5;
             boolean horizontal = isHorizontal(sampleTarget, yInches);
 
             double turretServo = map(xInches, MIN_XOFFSET, MAX_XOFFSET, SERVO_MIN, SERVO_MAX);
@@ -391,6 +638,10 @@ public class SpecTrans extends OpMode {
     }
 
     public void place(){
+        servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_INIT, OutConst.claw_CLOSED);
+        outTargetPosition = OutConst.slideSpecimen;
+    }
+    public void placeFirst(){
         servoConfig.setOuttakePos(OutConst.lr_SPEC, OutConst.y_SPEC, OutConst.link_INIT, OutConst.claw_CLOSED);
         outTargetPosition = OutConst.slideSpecimen;
     }
@@ -485,6 +736,7 @@ public class SpecTrans extends OpMode {
 
         motorConfig.intakeMotor.setPower(intakePower);
     }
+
     public void outtakeReset(){
         outTargetPosition = OutConst.slidesDown;
 
@@ -493,6 +745,8 @@ public class SpecTrans extends OpMode {
         servoConfig.outY.setPosition(OutConst.y_PICK);
         servoConfig.outLink.setPosition(OutConst.link_INIT);
         servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
+
+        servoConfig.intY.setPosition(0.5);
 
     }
 }

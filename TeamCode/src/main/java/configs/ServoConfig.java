@@ -65,7 +65,7 @@ public class ServoConfig {
 
     public void setInitPos() {
         intRot.setPosition(IntConst.rot_GRAB);
-        intY.setPosition(IntConst.y_MIDDLE);
+        intY.setPosition(IntConst.y_PERPENDICULAR);
         intClawRot.setPosition(IntConst.clawRot_INIT);
         intClaw.setPosition(IntConst.claw_OPEN);
 

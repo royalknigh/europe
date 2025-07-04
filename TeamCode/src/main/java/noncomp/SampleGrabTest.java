@@ -25,7 +25,7 @@ public class SampleGrabTest extends LinearOpMode {
     MotorConfig motorConfig;
 
     private static final double CAMERA_HEIGHT_IN = 8; // inches
-    private static double CAMERA_TILT_DEG = 45;  // degrees
+    private static double CAMERA_TILT_DEG = 47;  // degrees
     private static final double TURRET_LENGTH = 5.5;
     private static final double MAX_SLIDER_INCHES = 17.71;
     private static final int MAX_SLIDER_TICKS = 650;
@@ -87,7 +87,7 @@ public class SampleGrabTest extends LinearOpMode {
 
             // Execute grab once the intake is in place
             if (readyToGrab) {
-                if (grabTimerLL.milliseconds() > 500) servoConfig.intY.setPosition(IntConst.y_GRAB);
+                if (grabTimerLL.milliseconds() > 500) servoConfig.intY.setPosition(IntConst.y_GRAB_AUTO);
                 if (grabTimerLL.milliseconds() > 1000) {
                     servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                     readyToGrab = false;
@@ -131,10 +131,8 @@ public class SampleGrabTest extends LinearOpMode {
 
             double yInches = CAMERA_HEIGHT_IN * Math.tan(totalVertRad);
             double xInches = yInches * Math.tan(txRad);
-//            yInches += 2
-            ;
-//            if(yInches>16)
-//                yInches += 0.5;
+            if(yInches<14)
+                yInches += 1.5;
             boolean horizontal = isHorizontal(sampleTarget,yInches);
 
             if (gamepad1.a && !pressed) {

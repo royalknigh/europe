@@ -105,6 +105,7 @@ public class Merman extends LinearOpMode {
             panicButton();
             lowerLegs();
 
+
             telemetry.addData("state ", state);
             telemetry.addData("intake motor position", motorConfig.intakeMotor.getCurrentPosition());
             telemetry.addData("slide motor position", motorConfig.frontSlideMotor.getCurrentPosition());
@@ -124,6 +125,9 @@ public class Merman extends LinearOpMode {
     private boolean hang = false;
     private boolean slides = false;
 
+    private boolean pull = false;
+    private boolean secondHang = false;
+    private boolean hanged = false;
 
     public double angle = IntConst.clawRot_INIT;
 
@@ -172,9 +176,9 @@ public class Merman extends LinearOpMode {
                     servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                 }
                 if(gamepad1.left_stick_x<-0.1)
-                    angle-= 0.05;
+                    angle-= 0.08;
                 if(gamepad1.left_stick_x>0.1)
-                    angle+= 0.05;
+                    angle+= 0.08;
                 if (gamepad1.right_trigger > 0 && intakeTimer.milliseconds()>200) {
                     intakeTimer.reset();
                     servoConfig.intY.setPosition(IntConst.y_GRAB);
@@ -185,15 +189,15 @@ public class Merman extends LinearOpMode {
                 break;
             }
             case PICKUP:{
-                if(intakeTimer.milliseconds()>70)
+                if(intakeTimer.milliseconds()>50)
                     servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
-                if(intakeTimer.milliseconds()>150)
+                if(intakeTimer.milliseconds()>300)
                     servoConfig.intY.setPosition(IntConst.y_HOVER);
                 if(gamepad1.right_bumper) {
                     intakeTimer.reset();
                     state= RobotStates.RETRACT_SAMPLE;
                 }
-                if(intakeTimer.milliseconds()>250){
+                if(intakeTimer.milliseconds()>300){
                     if(gamepad1.right_trigger>0){
                         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                         intakeTimer.reset();
@@ -207,9 +211,9 @@ public class Merman extends LinearOpMode {
 
 
                 if(gamepad1.left_stick_x<-0.1)
-                    angle-= 0.05;
+                    angle-= 0.08;
                 if(gamepad1.left_stick_x>0.1)
-                    angle+= 0.05;
+                    angle+= 0.08;
                 servoConfig.intClawRot.setPosition(MathFunctions.clamp(angle, 0, 1));
 
 
@@ -319,7 +323,7 @@ public class Merman extends LinearOpMode {
                 if(motorConfig.frontSlideMotor.getCurrentPosition()>800)
                     servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.y_SAMPLE, OutConst.link_PLACE, OutConst.claw_CLOSED);
 
-                if (gamepad1.left_trigger > 0) {
+                if (gamepad2.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                     state = RobotStates.INTERMEDIATE;
                 }
@@ -332,7 +336,7 @@ public class Merman extends LinearOpMode {
                 outTargetPosition = OutConst.slidesSampleLow;
                 servoConfig.setOuttakePos(OutConst.lr_SAMPLE, OutConst.y_SAMPLE, OutConst.link_PLACE, OutConst.claw_CLOSED);
 
-                if (gamepad1.left_trigger > 0) {
+                if (gamepad2.left_trigger > 0) {
                     servoConfig.outClaw.setPosition(OutConst.claw_OPEN);
                     state = RobotStates.INTERMEDIATE;
 
@@ -372,23 +376,81 @@ public class Merman extends LinearOpMode {
                 break;
 
             }
-            case HANG:
-                if(gamepad2.triangle){
+            case HANG:{
+
+
+                if (gamepad2.triangle) {
                     outTargetPosition = OutConst.firstBarHang;
+                    servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
                     servoConfig.ptoLeft.setPosition(IntConst.ptoLegsDown);
                     servoConfig.ptoRight.setPosition(IntConst.ptoLegsDown);
+                    servoConfig.intY.setPosition(IntConst.y_INIT);
                 }
-                if(gamepad2.a){
-                    slides = false;
-                    servoConfig.ptoRot.setPosition(IntConst.ptoLock);
 
-                    motorConfig.frontSlideMotor.setPower(-0.532);
-                    motorConfig.backSlideMotor.setPower(-0.532);
+                if (gamepad2.a) {
+                    slides = true;
+                    pull = true;
+                }
+                if (gamepad2.square) {
+                    slides = true;
+                    pull = false;
+                    secondHang = true;
+                }
+
+                if(secondHang){
+                    servoConfig.ptoRot.setPosition(IntConst.ptoLock);
+                    motorConfig.frontSlideMotor.setMotorDisable();
+                    motorConfig.backSlideMotor.setMotorDisable();
+
 
                     motorConfig.backLeftMotor.setPower(1);
                     motorConfig.backRightMotor.setPower(1);
                 }
-                break;
+                if (pull) {
+                    servoConfig.ptoRot.setPosition(IntConst.ptoLock);
+                    motorConfig.frontSlideMotor.setMotorDisable();
+                    motorConfig.backSlideMotor.setMotorDisable();
+
+                    motorConfig.backLeftMotor.setPower(1);
+                    motorConfig.backRightMotor.setPower(1);
+
+                    if(motorConfig.frontSlideMotor.getCurrentPosition()<5){
+                        motorConfig.backLeftMotor.setMotorDisable();
+                        motorConfig.backRightMotor.setMotorDisable();
+                        outTargetPosition = OutConst.slidesDown;
+                        hanged = true;
+                        pull = false;
+                        slides = false;
+                        MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                        MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+
+                        MotorConfig.frontSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+                        MotorConfig.backSlideMotor.setMode(DcMotorEx.RunMode.RUN_WITHOUT_ENCODER);
+
+                        servoConfig.ptoLeft.setPosition(IntConst.ptoLegsUp);
+                        servoConfig.ptoRight.setPosition(IntConst.ptoLegsUp);
+                    }
+                }
+                if(hanged){
+                    servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
+                }
+                if (gamepad2.circle) {
+                    motorConfig.frontSlideMotor.setMotorEnable();
+                    motorConfig.backSlideMotor.setMotorEnable();
+                    outTargetPosition = OutConst.slidesSampleHigh-100;
+                    servoConfig.ptoRot.setPosition(IntConst.ptoUnlock);
+                    servoConfig.ptoLeft.setPosition(IntConst.ptoLegsUp);
+                    servoConfig.ptoRight.setPosition(IntConst.ptoLegsUp);
+                    servoConfig.intY.setPosition(IntConst.y_INIT);
+
+                    hanged = false;
+                }
+
+                if(gamepad2.dpad_left){
+                    motorConfig.backLeftMotor.setMotorDisable();
+                    motorConfig.backRightMotor.setMotorDisable();
+                }
+                break;}
         }
     }
 
@@ -493,7 +555,7 @@ public class Merman extends LinearOpMode {
 
     public void setInitPos() {
         servoConfig.intRot.setPosition(IntConst.rot_GRAB);
-        servoConfig.intY.setPosition(IntConst.y_MIDDLE);
+        servoConfig.intY.setPosition(IntConst.y_PERPENDICULAR);
         servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
 

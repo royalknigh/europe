@@ -27,8 +27,8 @@ import consts.OutConst;
 import pedroPathing.constants.FConstants;
 import pedroPathing.constants.LConstants;
 
-@Autonomous(name = "SampleAuto", group = ".Comp")
-public class SampleAutoRework extends OpMode {
+@Autonomous(name = "SampleAutoSpikes", group = ".Comp")
+public class SampleAutoSpikes extends OpMode {
 
     private Follower follower;
     private Timer pathTimer, actionTimer, opmodeTimer;
@@ -46,7 +46,7 @@ public class SampleAutoRework extends OpMode {
 
     private Pose firstSample = new Pose(15.5, 132, Math.toRadians(339));
 
-    private Pose secondSample = new Pose(16, 133.5, Math.toRadians(354));
+    private Pose secondSample = new Pose(16, 133.8, Math.toRadians(354));
 
     private Pose secondSampleRot = new Pose(16, 133, Math.toRadians(340));
 
@@ -54,11 +54,11 @@ public class SampleAutoRework extends OpMode {
 
     private Pose sub = new Pose(60, 94, Math.toRadians(-90));
 
-    private Pose sub2 = new Pose(65, 93, Math.toRadians(-90));
+    private Pose sub2 = new Pose(65, 94, Math.toRadians(-90));
 
     private Pose subControl = new Pose(60, 125, Math.toRadians(-75));
 
-    private Pose dropPose = new Pose(17, 133, Math.toRadians(320));
+    private Pose dropPose = new Pose(16, 131, Math.toRadians(320));
 
     private Pose scorePose = new Pose(16, 133, Math.toRadians(330));
 
@@ -122,7 +122,7 @@ public class SampleAutoRework extends OpMode {
     public ElapsedTime dropTimer = new ElapsedTime();
 
     private PathChain preloadScore, secondExtend, initPath,scoreRot, score2,
-            thirdExtend, subPath, dropPath, subPath2, dropPath2;
+            thirdExtend, subPath, dropPath, subPath2, dropPath2,score2Rot;
 
 
 
@@ -137,12 +137,21 @@ public class SampleAutoRework extends OpMode {
 
                 .addParametricCallback(0, () -> follower.setMaxPower(0.7))
                 .addParametricCallback(0.6, () -> follower.setMaxPower(0.5))
+                .addParametricCallback(0.8, () -> follower.setMaxPower(0.3))
                 .build();
 
         scoreRot = follower.pathBuilder()
                 .addPath(new BezierLine(new Point(firstSample), new Point(scorePose)))
                 .setLinearHeadingInterpolation(firstSample.getHeading(), scorePose.getHeading())
                 .setZeroPowerAccelerationMultiplier(3)
+                .setPathEndTimeoutConstraint(0)
+                .build();
+
+        score2Rot = follower.pathBuilder()
+                .addPath(new BezierLine(new Point(secondSample), new Point(scorePose)))
+                .setLinearHeadingInterpolation(firstSample.getHeading(), scorePose.getHeading())
+                .setZeroPowerAccelerationMultiplier(3)
+                .addParametricCallback(0,()-> follower.setMaxPower(0.5))
                 .setPathEndTimeoutConstraint(0)
                 .build();
 
@@ -158,7 +167,7 @@ public class SampleAutoRework extends OpMode {
                 .setLinearHeadingInterpolation(firstSample.getHeading(), secondSample.getHeading())
                 .setZeroPowerAccelerationMultiplier(2)
                 .setPathEndTimeoutConstraint(0)
-                .addParametricCallback(0, () -> scoreSample())
+                .addParametricCallback(0.8, () -> resetOuttake())
                 .addParametricCallback(0, () -> follower.setMaxPower(0.7))
                 .addParametricCallback(0.8, () -> follower.setMaxPower(0.5))
 
@@ -169,7 +178,7 @@ public class SampleAutoRework extends OpMode {
                 .setLinearHeadingInterpolation(secondSample.getHeading(), thirdSample.getHeading())
                 .setZeroPowerAccelerationMultiplier(2)
                 .setPathEndTimeoutConstraint(0)
-                .addParametricCallback(0, () -> scoreSample())
+                .addParametricCallback(0.8, () -> resetOuttake())
                 .addParametricCallback(0, () -> follower.setMaxPower(0.7))
                 .addParametricCallback(0.6, () -> follower.setMaxPower(0.5))
 
@@ -183,6 +192,8 @@ public class SampleAutoRework extends OpMode {
 
 
                 .addParametricCallback(0.05, ()-> outtakeReset())
+                .addParametricCallback(0.05, ()-> servoConfig.intRot.setPosition(IntConst.rot_GRAB))
+                .addParametricCallback(0.05, ()-> servoConfig.intY.setPosition(IntConst.y_MIDDLE))
                 .addParametricCallback(0.6, ()-> follower.setMaxPower(0.6))
                 .addParametricCallback(0.8, ()-> follower.setMaxPower(0.5))
                 .addParametricCallback(0.95, ()-> follower.setMaxPower(0.3))
@@ -246,30 +257,30 @@ public class SampleAutoRework extends OpMode {
                 setPathState(1);
                 break;
             case 1:
-                if(follower.getCurrentTValue()>0.8 && ok1) scoreSample();
+                if(follower.getCurrentTValue()>0.3 && ok1) scoreSample();
                 if(!follower.isBusy()){
                     if(canExtend){
 
                         canExtend = false;
                     }
-                    if(resetTimer.milliseconds() > 2200 && ok1){
+                    if(resetTimer.milliseconds() > 1600 && ok1){
                         extend(700);
                         predrop();
 
                         ok1 = false;
                     }
-                    if(resetTimer.milliseconds() > 2300)
+                    if(resetTimer.milliseconds() > 1700)
                         servoConfig.outY.setPosition(0.3);
-                    if(resetTimer.milliseconds() > 2400 && ok2){
+                    if(resetTimer.milliseconds() > 1800 && ok2){
                         drop();
                         ok2 = false;
                     }
-                    if(resetTimer.milliseconds() > 3000 && ok3){
+                    if(resetTimer.milliseconds() > 2400 && ok3){
                         if(!outtakeResetted) {
                             resetOuttake();
                             outtakeResetted = true;
                         }
-                        grabFunction(0.54,0.26,0.07,100);
+                        grabFunction(0.54,0.26,0.07,200);
                     }
                     if(score){
                         follower.followPath(scoreRot);
@@ -289,120 +300,152 @@ public class SampleAutoRework extends OpMode {
                 }
                 break;
             case 2:
-                if(!follower.isBusy()) {
+                if(follower.getCurrentTValue()>0 && follower.getCurrentTValue()<0.9){
+                    outTargetPosition = OutConst.slidesSampleHigh;
+                    scoreSample();
+                }
+                if(resetTimer.milliseconds() > 700 && ok1){
+                    predrop();
 
-                    if(canExtend){
-                        follower.followPath(secondExtend);
-                        canExtend = false;
-                    }
-                    if(resetTimer.milliseconds() > 300 && ok1){
-                        extend(640);
-                        predrop();
-                        ok1 = false;
-                    }
-                    if(resetTimer.milliseconds() > 1100)
-                        servoConfig.outY.setPosition(0.35);
-                    if(resetTimer.milliseconds() > 1700 && ok2){
-                        drop();
-                        ok2 = false;
-                    }
-                    if(resetTimer.milliseconds() > 1400 && ok3){
-
-                        if(!outtakeResetted) {
-                            resetOuttake();
-                            outtakeResetted = true;
-                        }
-                        grabFunction(0.64,0.26,0.05,200);
-                    }
-                    if(score){
-                        follower.followPath(thirdExtend);
-                        dropped = false;
+                    ok1 = false;
+                }
+                if(resetTimer.milliseconds() > 800)
+                    servoConfig.outY.setPosition(0.3);
+                if(resetTimer.milliseconds() > 900 && ok2){
+                    drop();
+                    ok2 = false;
+                }
+                if(resetTimer.milliseconds() > 1100 && ok3){
+                    if(!outtakeResetted) {
+                        resetOuttake();
+                        outtakeResetted = true;
                         intakeTimer.reset();
-                        resetTimer.reset();
+                        follower.followPath(secondExtend);
+                        intTargetPosition = 640;
+                        servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+                        servoConfig.intY.setPosition(IntConst.y_MIDDLE);
                         ok1 = true;
                         ok2 = true;
-                        ok3 = true;
                         score = false;
-                        grabTimerReset = true;
-                        outtakeResetted = false;
                         closedIntake = false;
-                        canExtend = true;
-                        boolean leftPressed = false;
                         setPathState(3);
                     }
                 }
                 break;
             case 3:
-                if(!follower.isBusy()) {
-                    if(canExtend){
-
-                        canExtend = false;
-
-                    }
-                    if (resetTimer.milliseconds() > 600 && ok1) {
-                        extend(670);
-                        predrop();
+                if(!follower.isBusy()){
+                    if(ok1 && intakeTimer.milliseconds()>100) {
+                        extend(640);
                         ok1 = false;
                     }
-                    if(resetTimer.milliseconds() > 900)
-                        servoConfig.outY.setPosition(0.35);
-                    if (resetTimer.milliseconds() > 1200 && ok2) {
-                        drop();
-                        ok2 = false;
+                    if(intakeTimer.milliseconds()>400 && !score){
+                        grabFunction(0.64,0.26,0.07,200);
                     }
-                    if(resetTimer.milliseconds() > 1700 && ok3){
-                        if(!outtakeResetted) {
-                            resetOuttake();
-                            outtakeResetted = true;
-                        }
-                        grabFunction(0.87,0.07,0.13,100);
-                    }
-                    if(score){
-                        dropped = false;
-                        intakeTimer.reset();
+                    if(score && intakeTimer.milliseconds()>1200){
+                        follower.followPath(score2Rot);
                         resetTimer.reset();
                         ok1 = true;
                         ok2 = true;
                         ok3 = true;
-                        score = false;
-                        grabTimerReset = true;
                         outtakeResetted = false;
-                        closedIntake = false;
-                        dropped = false;
-                        scoreSample();
                         setPathState(4);
                     }
                 }
                 break;
             case 4:
-                if (resetTimer.milliseconds() > 600 && ok1) {
+                if(ok1){
+                    outTargetPosition = OutConst.slidesSampleHigh;
+                    scoreSample();
+                }
+                if(resetTimer.milliseconds() > 800 && ok1){
                     predrop();
-                    servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+
                     ok1 = false;
                 }
                 if(resetTimer.milliseconds() > 900)
                     servoConfig.outY.setPosition(0.3);
-                if (resetTimer.milliseconds() > 1200 && ok2) {
+                if(resetTimer.milliseconds() > 1000 && ok2){
                     drop();
-                    servoConfig.intY.setPosition(IntConst.y_MIDDLE);
                     ok2 = false;
                 }
-                if(dropped) {
-                    score = false;
-                    follower.followPath(subPath);
-                    follower.setMaxPower(0.8);
-                    transferred = false;
-                    setPathState(5);
+                if(resetTimer.milliseconds() > 1200 && ok3){
+                    if(!outtakeResetted) {
+                        resetOuttake();
+                        outtakeResetted = true;
+                        intakeTimer.reset();
+                        follower.followPath(thirdExtend);
+                        intTargetPosition = 670;
+                        servoConfig.intRot.setPosition(IntConst.rot_GRAB);
+                        servoConfig.intY.setPosition(IntConst.y_MIDDLE);
+                        ok1 = true;
+                        ok2 = true;
+                        score = false;
+                        closedIntake = false;
+                        closedIntake = false;
+                        grabTimerReset = true;
+                        setPathState(5);
+                    }
                 }
                 break;
             case 5:
+                if(!follower.isBusy()){
+                    if(ok1 && intakeTimer.milliseconds()>100) {
+                        extend(670);
+                        ok1 = false;
+                    }
+                    if(intakeTimer.milliseconds()>700 && !score){
+                        grabFunction(0.87,0.07,0.07,200);
+                    }
+                    if(score && intakeTimer.milliseconds()>1300){
+                        follower.followPath(score2Rot);
+                        resetTimer.reset();
+                        ok1 = true;
+                        ok2 = true;
+                        ok3 = true;
+                        outtakeResetted = false;
+                        setPathState(6);
+                    }
+                }
+                break;
+            case 6:
+                if(ok1){
+                    outTargetPosition = OutConst.slidesSampleHigh;
+                    scoreSample();
+                }
+                if(resetTimer.milliseconds() > 1000 && ok1){
+                    predrop();
+                    ok1 = false;
+                }
+                if(resetTimer.milliseconds() > 1100)
+                    servoConfig.outY.setPosition(0.3);
+                if(resetTimer.milliseconds() > 1200 && ok2){
+                    drop();
+                    ok2 = false;
+                }
+                if(resetTimer.milliseconds() > 1400 && ok3){
+                    if(!outtakeResetted) {
+                        resetOuttake();
+                        outtakeResetted = true;
+                        intakeTimer.reset();
+                        follower.followPath(subPath);
+                        ok1 = true;
+                        ok2 = true;
+                        score = false;
+                        closedIntake = false;
+                        closedIntake = false;
+                        grabTimerReset = true;
+                        setPathState(7);
+                    }
+                }
+                break;
+            case 7:
                 if(!follower.isBusy() || transfer) {
                     if (startSearchTimer) {
                         transfer = true;
                         startSearchTimer = false;
                         startSearching.reset();
                     }
-                    if (!detected && startSearching.milliseconds() > 650 && !readyToGrab && !dontSearchAnymore)  {
+                    if (!detected && startSearching.milliseconds() > 500 && !readyToGrab && !dontSearchAnymore)  {
                         detectAndTrackYellowSample();
                         dontSearchAnymore = true;
                     }
@@ -415,17 +458,17 @@ public class SampleAutoRework extends OpMode {
                     }
                     if (readyToGrab) {
                         if (grabTimerLL.milliseconds() > 500)
-                            servoConfig.intY.setPosition(IntConst.y_GRAB);
-                        if (grabTimerLL.milliseconds() > 1000) {
+                            servoConfig.intY.setPosition(IntConst.y_GRAB_AUTO);
+                        if (grabTimerLL.milliseconds() > 800) {
                             servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                             readyToGrab = false;
                         }
                     }
                     if (!readyToGrab && !score && da) {
-                        if (grabTimerLL.milliseconds() > 1200){
+                        if (grabTimerLL.milliseconds() > 1100){
                             servoConfig.intY.setPosition(IntConst.y_TRANSFER);
                             servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
-                            intTargetPosition = IntConst.slideRetracted + 300;
+                            intTargetPosition = IntConst.slideRetracted + 200;
 
                         }
                         if(grabTimerLL.milliseconds()>1450 && followPath) {
@@ -444,23 +487,23 @@ public class SampleAutoRework extends OpMode {
                             servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                             servoConfig.intY.setPosition(IntConst.y_INIT);
 
-                            setPathState(6);
+                            setPathState(8);
                             score = true;
                         }
                     }
                 }
-                    break;
-            case 6:
+                break;
+            case 8:
                 if(follower.getCurrentTValue()>0.6) {
                     scoreSample();
                 }
                 if(follower.getCurrentTValue()>0.95) {
                     predrop();
                     dropTimer.reset();
-                    setPathState(7);
+                    setPathState(9);
                 }
                 break;
-            case 7:
+            case 9:
                 if(!follower.isBusy()){
                     servoConfig.outY.setPosition(0.3);
                     if(dropTimer.milliseconds()>600) {
@@ -470,7 +513,7 @@ public class SampleAutoRework extends OpMode {
                     if(dropTimer.milliseconds()>800){
                         servoConfig.intY.setPosition(IntConst.y_MIDDLE);
                         follower.followPath(subPath2);
-                        setPathState(8);
+                        setPathState(10);
                         transfer = false;
                         startSearchTimer = true;
                         detected = false;
@@ -483,14 +526,14 @@ public class SampleAutoRework extends OpMode {
 
                 }
                 break;
-            case 8:
+            case 10:
                 if(!follower.isBusy() || transfer){
                     if (startSearchTimer) {
                         transfer = true;
                         startSearchTimer = false;
                         startSearching.reset();
                     }
-                    if (!detected && startSearching.milliseconds() > 750 && !readyToGrab && !dontSearchAnymore)  {
+                    if (!detected && startSearching.milliseconds() > 500 && !readyToGrab && !dontSearchAnymore)  {
                         detectAndTrackYellowSample();
                         dontSearchAnymore = true;
                     }
@@ -503,21 +546,21 @@ public class SampleAutoRework extends OpMode {
                     }
                     if (readyToGrab) {
                         if (grabTimerLL.milliseconds() > 500)
-                            servoConfig.intY.setPosition(IntConst.y_GRAB);
-                        if (grabTimerLL.milliseconds() > 1000) {
+                            servoConfig.intY.setPosition(IntConst.y_GRAB_AUTO);
+                        if (grabTimerLL.milliseconds() > 800) {
                             servoConfig.intClaw.setPosition(IntConst.claw_CLOSED);
                             readyToGrab = false;
                         }
                     }
                     if (!readyToGrab && !score && da) {
-                        if (grabTimerLL.milliseconds() > 1200){
+                        if (grabTimerLL.milliseconds() > 1100){
                             servoConfig.intY.setPosition(IntConst.y_TRANSFER);
                             servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
-                            intTargetPosition = IntConst.slideRetracted + 300;
+                            intTargetPosition = IntConst.slideRetracted + 200;
 
                         }
                         if(grabTimerLL.milliseconds()>1450 && followPath) {
-                            followPath = true;
+                            followPath = false;
                             servoConfig.intRot.setPosition(IntConst.rot_INIT);
                             follower.followPath(dropPath2);
                             follower.setMaxPower(0.9);
@@ -532,23 +575,23 @@ public class SampleAutoRework extends OpMode {
                             servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                             servoConfig.intY.setPosition(IntConst.y_INIT);
 
-                            setPathState(9);
+                            setPathState(11);
                             score = true;
                         }
                     }
                 }
                 break;
-            case 9:
+            case 11:
                 if(follower.getCurrentTValue()>0.6) {
                     scoreSample();
                 }
                 if(follower.getCurrentTValue()>0.95) {
                     predrop();
                     dropTimer.reset();
-                    setPathState(10);
+                    setPathState(12);
                 }
                 break;
-            case 10:
+            case 12:
                 if(!follower.isBusy()){
                     servoConfig.outY.setPosition(0.3);
                     if(dropTimer.milliseconds()>600) {
@@ -651,7 +694,7 @@ public class SampleAutoRework extends OpMode {
             double xInches = yInches * Math.tan(txRad);
 
             if(yInches<14)
-                yInches += 1;
+                yInches += 1.5;
             boolean horizontal = isHorizontal(sampleTarget, yInches);
 
             double turretServo = map(xInches, MIN_XOFFSET, MAX_XOFFSET, SERVO_MIN, SERVO_MAX);
@@ -663,14 +706,14 @@ public class SampleAutoRework extends OpMode {
             else
                 servoConfig.intClawRot.setPosition(map(turretServo,0.1,SERVO_MAX,0.81,0.48));
 
-                pressed = true;
+            pressed = true;
 
-                double turretAngleRad = Math.toRadians(map(turretServo,SERVO_MIN,SERVO_MAX,-39,39));
+            double turretAngleRad = Math.toRadians(map(turretServo,SERVO_MIN,SERVO_MAX,-39,39));
             double verticalCompensation = Math.abs(Math.sin(turretAngleRad)) * 2;
             sliderTargetInches = (yInches - TURRET_LENGTH)+ verticalCompensation;
-                trackingTargetTicks = (int) (sliderTargetInches * TICKS_PER_INCH);
-                trackingTargetTicks = Math.max(0, Math.min(MAX_SLIDER_TICKS, trackingTargetTicks));
-                intTargetPosition = trackingTargetTicks;
+            trackingTargetTicks = (int) (sliderTargetInches * TICKS_PER_INCH);
+            trackingTargetTicks = Math.max(0, Math.min(MAX_SLIDER_TICKS, trackingTargetTicks));
+            intTargetPosition = trackingTargetTicks;
 
 
             telemetry.addData("pressed", pressed);
@@ -689,36 +732,36 @@ public class SampleAutoRework extends OpMode {
     }
 
     private boolean isHorizontal(LLResultTypes.DetectorResult target, double yInches) {
-    List<List<Double>> corners = target.getTargetCorners();
-    if (corners.size() == 4) {
-        double x0 = corners.get(0).get(0), y0 = corners.get(0).get(1);
-        double x1 = corners.get(1).get(0), y1 = corners.get(1).get(1);
-        double x2 = corners.get(2).get(0), y2 = corners.get(2).get(1);
+        List<List<Double>> corners = target.getTargetCorners();
+        if (corners.size() == 4) {
+            double x0 = corners.get(0).get(0), y0 = corners.get(0).get(1);
+            double x1 = corners.get(1).get(0), y1 = corners.get(1).get(1);
+            double x2 = corners.get(2).get(0), y2 = corners.get(2).get(1);
 
-        double width = Math.hypot(x1 - x0, y1 - y0);
-        double height = Math.hypot(x2 - x1, y2 - y1);
+            double width = Math.hypot(x1 - x0, y1 - y0);
+            double height = Math.hypot(x2 - x1, y2 - y1);
 
-        double ratio = width / height;
+            double ratio = width / height;
 
-        // Tuned exponential ratio threshold
-        if(yInches<10){
-            return ratio>1.3;
+            // Tuned exponential ratio threshold
+            if(yInches<10){
+                return ratio>1.3;
 
+            }
+            // Tuned exponential ratio threshold
+            double A = 1.3;
+            double B = 0.05;
+            double threshold = A + B*Math.pow((yInches-10), 1.4);
+
+            telemetry.addData("Width", width);
+            telemetry.addData("Height", height);
+            telemetry.addData("Ratio", ratio);
+            telemetry.addData("Threshold", threshold);
+
+            return ratio > threshold;
         }
-        // Tuned exponential ratio threshold
-        double A = 1.3;
-        double B = 0.05;
-        double threshold = A + B*Math.pow((yInches-10), 1.4);
-
-        telemetry.addData("Width", width);
-        telemetry.addData("Height", height);
-        telemetry.addData("Ratio", ratio);
-        telemetry.addData("Threshold", threshold);
-
-        return ratio > threshold;
+        return false;
     }
-    return false;
-}
     private double map(double val, double inMin, double inMax, double outMin, double outMax) {
         return outMin + (val - inMin) * (outMax - outMin) / (inMax - inMin);
     }
@@ -787,7 +830,7 @@ public class SampleAutoRework extends OpMode {
     public void extend(int extension){
         intTargetPosition = extension;
         servoConfig.intRot.setPosition(IntConst.rot_GRAB);
-        servoConfig.intY.setPosition(IntConst.y_TRANSFER);
+        servoConfig.intY.setPosition(IntConst.y_MIDDLE);
         servoConfig.intClawRot.setPosition(IntConst.clawRot_INIT);
         servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
     }
@@ -840,9 +883,9 @@ public class SampleAutoRework extends OpMode {
                 intTargetPosition = IntConst.slideRetracted;
             }
 
-            if (grabTimer.milliseconds() > 1900)
+            if (grabTimer.milliseconds() > 2000)
                 servoConfig.outClaw.setPosition(OutConst.claw_PRESSED);
-            if (grabTimer.milliseconds() > 2000) {
+            if (grabTimer.milliseconds() > 2100) {
                 servoConfig.intClaw.setPosition(IntConst.claw_OPEN);
                 servoConfig.intY.setPosition(IntConst.y_INIT);
                 score = true;

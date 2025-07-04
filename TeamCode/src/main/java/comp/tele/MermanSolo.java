@@ -379,7 +379,7 @@ public class MermanSolo extends LinearOpMode {
                 }
                 break;
             }
-            case HANG:
+            case HANG:{
                 servoConfig.intY.setPosition(IntConst.y_INIT);
 
                 if (gamepad2.triangle) {
@@ -449,12 +449,11 @@ public class MermanSolo extends LinearOpMode {
                     motorConfig.backLeftMotor.setMotorDisable();
                     motorConfig.backRightMotor.setMotorDisable();
                 }
-                break;
+                break;}
         }
     }
 
     private boolean pull = false;
-    private boolean tug = false;
     private boolean secondHang = false;
 
     public void movement() {

@@ -5,11 +5,12 @@ import com.pedropathing.localization.Pose;
 public class PoseSpec {
     public static Pose startPose = new Pose(7.5,65, 0);
 
-    public static Pose scorePose = new Pose(39,67, 0);
+    public static Pose scorePose = new Pose(39,69, 0);
 
-    public static Pose scorePose2 = new Pose(31,72, 0);
+    public static Pose scorePose2 = new Pose(34,68, 0);
 
-    public static Pose pickupPose = new Pose(8.3, 32, 0);
+    public static Pose pickupPose = new Pose(8.5, 32, 0);
+    public static Pose pickupPose3 = new Pose(8.5, 33, 0);
 
     public static Pose pickupPoseControl1 = new Pose(30, 30, 0);
 
